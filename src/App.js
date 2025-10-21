@@ -251,7 +251,6 @@ function App() {
                       />
                     </div>
                   </div>
-{/* hcbdfhbhfdbhjvhvbdh */}
                   <div className="flex max-h-96">
                     <div className="w-40 bg-gray-800 border-r border-gray-700 overflow-y-auto">
                       {Object.keys(formatCategories).map((category) => (
