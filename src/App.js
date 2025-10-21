@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 
 function App() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [convertedFile, setConvertedFile] = useState(null);
-  const [conversionFormat, setConversionFormat] = useState('jpg');
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [convertedFiles, setConvertedFiles] = useState([]);
+  const [globalFormat, setGlobalFormat] = useState('jpg'); // Default global format
   const [isConverting, setIsConverting] = useState(false);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [showFormatMenu, setShowFormatMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Image');
   const [showFileDropdown, setShowFileDropdown] = useState(false);
-
+  const [openFormatIndex, setOpenFormatIndex] = useState(null); // which per-file format menu is open
+  const [editIndex, setEditIndex] = useState(null); // index of file being edited
+  const [editData, setEditData] = useState(null);   // { name, format, size, width, height, url, options: { width, height, fit, strip } }
   const formatCategories = {
-    'Image': ['JPG', 'PNG', 'GIF', 'WEBP', 'BMP', 'SVG', 'ICO', 'TIFF'],
     'Archive': ['AZW', 'AZW3', 'AZW4', 'CBR', 'CBZ'],
     'Audio': ['MP3', 'WAV', 'AAC', 'FLAC', 'OGG'],
     'Cad': ['DWG', 'DXF', 'DWF'],
@@ -36,42 +37,107 @@ function App() {
   const handleFileChange = (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    let file = null;
-    for (let i = 0; i < files.length; i++) {
-      if (files[i].type.startsWith('image/')) {
-        file = files[i];
-        break;
-      }
-    }
-    if (file) {
-      setSelectedFile(file);
-      setConvertedFile(null);
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length > 0) {
+      const filesWithFormat = imageFiles.map(file => ({
+        file,
+        format: globalFormat, // Initially use global format
+        options: { // Add default options for editing
+          width: null,
+          height: null,
+          fit: 'max',
+          strip: false
+        }
+      }));
+      setSelectedFiles(prev => [...prev, ...filesWithFormat]);
+      setConvertedFiles([]);
     } else {
-      alert('Please select a valid image file');
+      alert('Please select valid image files');
     }
   };
-// ndjksdjcijdl
+
+  // Update format for a specific file
+  const updateFileFormat = (index, newFormat) => {
+    const updatedFiles = [...selectedFiles];
+    updatedFiles[index].format = newFormat;
+    setSelectedFiles(updatedFiles);
+    setOpenFormatIndex(null); // close per-file menu after select
+  };
+
+  // Apply global format to all files
+  const applyGlobalFormat = (newFormat) => {
+    setGlobalFormat(newFormat);
+    const updatedFiles = selectedFiles.map(item => ({ ...item, format: newFormat }));
+    setSelectedFiles(updatedFiles);
+  };
+
   const handleConvert = async () => {
-    if (!selectedFile) {
-      alert('Please select an image first');
+    if (selectedFiles.length === 0) {
+      alert('Please select at least one image first');
       return;
     }
-
     setIsConverting(true);
+    const newConvertedFiles = [];
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const { file, format, options } = selectedFiles[i]; // Destructure options
+      try {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        await new Promise(resolve => {
+          img.onload = () => resolve();
+          img.onerror = () => {
+            alert(`Error loading image: ${file.name}`);
+            setIsConverting(false);
+            return;
+          };
+        });
 
-    try {
-      const img = new Image();
-      img.src = URL.createObjectURL(selectedFile);
-      
-      img.onload = () => {
+        let canvasWidth = img.width;
+        let canvasHeight = img.height;
+
+        // Apply resizing based on options
+        if (options.width || options.height) {
+          let targetWidth = options.width ? parseInt(options.width) : canvasWidth;
+          let targetHeight = options.height ? parseInt(options.height) : canvasHeight;
+
+          if (options.fit === 'max') {
+            // Resize to fit within dimensions without increasing size
+            const ratio = Math.min(targetWidth / canvasWidth, targetHeight / canvasHeight, 1);
+            canvasWidth = Math.round(canvasWidth * ratio);
+            canvasHeight = Math.round(canvasHeight * ratio);
+          } else if (options.fit === 'crop') {
+            // Resize to fill dimensions, crop excess
+            const ratio = Math.max(targetWidth / canvasWidth, targetHeight / canvasHeight);
+            canvasWidth = Math.round(canvasWidth * ratio);
+            canvasHeight = Math.round(canvasHeight * ratio);
+          } else if (options.fit === 'scale') {
+            // Enforce exact dimensions by scaling
+            canvasWidth = targetWidth;
+            canvasHeight = targetHeight;
+          }
+        }
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        // Calculate position to draw the image (for crop and scale)
+        let sx = 0, sy = 0, sw = img.width, sh = img.height;
+        let dx = 0, dy = 0, dw = canvasWidth, dh = canvasHeight;
+
+        if (options.fit === 'crop' || options.fit === 'scale') {
+          const ratio = Math.max(canvasWidth / img.width, canvasHeight / img.height);
+          sw = canvasWidth / ratio;
+          sh = canvasHeight / ratio;
+          sx = (img.width - sw) / 2;
+          sy = (img.height - sh) / 2;
+        }
+
+        ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 
         let mimeType;
-        switch(conversionFormat.toLowerCase()) {
+        switch(format.toLowerCase()) {
           case 'jpg':
           case 'jpeg':
             mimeType = 'image/jpeg';
@@ -88,43 +154,60 @@ function App() {
 
         canvas.toBlob((blob) => {
           if (blob) {
-            const format = conversionFormat.toLowerCase();
-            const newFileName = selectedFile.name.replace(/\.[^/.]+$/, `.${format}`);
-            setConvertedFile({
+            const newFileName = file.name.replace(/\.[^/.]+$/, `.${format}`);
+            newConvertedFiles.push({
               name: newFileName,
               url: URL.createObjectURL(blob),
-              blob: blob
+              blob: blob,
+              originalName: file.name,
+              format: format,
+              // Include applied options in converted file info
+              appliedOptions: options
             });
           }
-          setIsConverting(false);
+          if (newConvertedFiles.length === selectedFiles.length) {
+            setConvertedFiles(newConvertedFiles);
+            setIsConverting(false);
+          }
         }, mimeType, 0.9);
-      };
 
-      img.onerror = () => {
-        alert('Error loading image');
+      } catch (error) {
+        console.error('Conversion error for file:', file.name, error);
+        alert(`An error occurred during conversion of ${file.name}`);
         setIsConverting(false);
-      };
-    } catch (error) {
-      console.error('Conversion error:', error);
-      alert('An error occurred during conversion');
-      setIsConverting(false);
+        return;
+      }
     }
   };
 
-  const handleDownload = () => {
-    if (!convertedFile) return;
+  const handleDownload = (file) => {
     const link = document.createElement('a');
-    link.href = convertedFile.url;
-    link.download = convertedFile.name;
+    link.href = file.url;
+    link.download = file.name;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const resetConverter = () => {
-    setSelectedFile(null);
-    setConvertedFile(null);
+    setSelectedFiles([]);
+    setConvertedFiles([]);
     setIsConverting(false);
+    setOpenFormatIndex(null);
+  };
+
+  // Remove a single file from selection
+  const removeFile = (index) => {
+    const updated = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(updated);
+    // adjust/close open per-file menu
+    if (openFormatIndex === index) {
+      setOpenFormatIndex(null);
+    } else if (openFormatIndex !== null && openFormatIndex > index) {
+      setOpenFormatIndex(openFormatIndex - 1);
+    }
+    // clear converted results when selection changes
+    if (convertedFiles.length) setConvertedFiles([]);
   };
 
   const handleFileDropdown = (option) => {
@@ -135,7 +218,7 @@ function App() {
         input.value = '';
         input.removeAttribute('webkitdirectory');
         input.removeAttribute('directory');
-        input.removeAttribute('multiple');
+        input.setAttribute('multiple', '');
         input.accept = 'image/*';
         input.click();
       }
@@ -145,12 +228,56 @@ function App() {
         input.value = '';
         input.setAttribute('webkitdirectory', '');
         input.setAttribute('directory', '');
-        input.removeAttribute('accept');
         input.setAttribute('multiple', '');
+        input.removeAttribute('accept');
         input.click();
       }
     } else {
       alert('This option is not implemented yet.');
+    }
+  };
+
+  // Open edit modal for a specific file and gather preview + metadata
+  const openEdit = (index) => {
+    const item = selectedFiles[index];
+    if (!item) return;
+    const file = item.file;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.src = url;
+    img.onload = () => {
+      setEditData({
+        name: file.name,
+        format: item.format,
+        size: file.size,
+        width: img.width,
+        height: img.height,
+        url,
+        options: { ...item.options } // Pass current options to modal
+      });
+      setEditIndex(index);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      alert('Unable to load image preview');
+    };
+  };
+
+  const closeEdit = () => {
+    if (editData && editData.url) {
+      URL.revokeObjectURL(editData.url);
+    }
+    setEditData(null);
+    setEditIndex(null);
+  };
+
+  // Save edited options back to the file
+  const saveEdit = () => {
+    if (editIndex !== null && editData) {
+      const updatedFiles = [...selectedFiles];
+      updatedFiles[editIndex].options = { ...editData.options }; // Save the modified options
+      setSelectedFiles(updatedFiles);
+      closeEdit();
     }
   };
 
@@ -175,7 +302,6 @@ function App() {
         .animate-fadeIn { animation: fadeIn 0.6s ease-out forwards; }
         .animate-spin-slow { animation: spin 3s linear infinite; }
       `}</style>
-
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 shadow-2xl sticky top-0 z-50">
         <div className="container mx-auto px-6 py-6">
@@ -198,43 +324,39 @@ function App() {
           </div>
         </div>
       </header>
-
       <main className="container mx-auto px-4 py-12 max-w-5xl">
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">Image Converter</h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            CloudConvert converts your image files online. Amongst many others, we support PNG, JPG, GIF, WEBP and HEIC. 
+            CloudConvert converts your image files online. Amongst many others, we support PNG, JPG, GIF, WEBP and HEIC.
             You can use the options to control image resolution, quality and file size.
           </p>
         </div>
-
         <div className="bg-white rounded-lg shadow-xl p-8 mb-8">
-          {/* Format Selection Row */}
+          {/* ✅ Upar wala original global dropdown — ab "Per File" ki jagah yeh hai */}
           <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
             <span className="text-gray-700 font-medium text-lg">convert</span>
-            <select 
+            <select
               className="px-6 py-3 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-lg"
-              value={selectedFile ? selectedFile.type.split('/')[1] : ''}
+              value={selectedFiles.length > 0 ? 'images' : ''}
               disabled
             >
               <option value="">...</option>
-              {selectedFile && <option value={selectedFile.type.split('/')[1]}>{selectedFile.type.split('/')[1].toUpperCase()}</option>}
+              {selectedFiles.length > 0 && <option value="images">Multiple Images</option>}
             </select>
             <span className="text-gray-700 font-medium text-lg">to</span>
-            
-            {/* Custom Dropdown */}
+            {/* ✅ Original Full-Featured Global Dropdown */}
             <div className="relative format-dropdown">
               <button
                 onClick={() => setShowFormatMenu(!showFormatMenu)}
                 className="px-6 py-3 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-lg font-medium flex items-center gap-2 hover:border-red-400 transition-colors"
               >
-                {conversionFormat.toUpperCase()}
+                {globalFormat.toUpperCase()}
                 <svg className={`w-4 h-4 transition-transform ${showFormatMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
               </button>
-
               {/* Format Menu Dropdown */}
               {showFormatMenu && (
                 <div className="absolute top-full mt-2 w-96 bg-gray-900 rounded-lg shadow-2xl z-50 overflow-hidden">
@@ -252,8 +374,6 @@ function App() {
                       />
                     </div>
                   </div>
-                  {/* bhjrbfhfbhjfbjhb */}
-                  {/* Format Selection bhjhbkjbkbhkb*/}
                   <div className="flex max-h-96">
                     <div className="w-40 bg-gray-800 border-r border-gray-700 overflow-y-auto">
                       {Object.keys(formatCategories).map((category) => (
@@ -273,19 +393,18 @@ function App() {
                         </button>
                       ))}
                     </div>
-
                     <div className="flex-1 p-4 overflow-y-auto bg-gray-900">
                       <div className="grid grid-cols-3 gap-2">
                         {filteredFormats.map((format) => (
                           <button
                             key={format}
                             onClick={() => {
-                              setConversionFormat(format.toLowerCase());
+                              applyGlobalFormat(format.toLowerCase());
                               setShowFormatMenu(false);
                               setSearchQuery('');
                             }}
                             className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                              conversionFormat.toUpperCase() === format
+                              globalFormat.toUpperCase() === format
                                 ? 'bg-red-600 text-white'
                                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                             }`}
@@ -303,43 +422,130 @@ function App() {
               )}
             </div>
           </div>
-
           {/* Upload Section */}
           <div className="mb-8">
-            {/* File List Bar (show when file is selected) */}
-            {selectedFile && !convertedFile && (
-              <div className="bg-white border rounded shadow flex items-center px-4 py-3 mb-8" style={{ minHeight: 60 }}>
-                {/* File Icon */}
-                <div className="flex items-center mr-3">
-                  <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
-                  </svg>
+            {/* File List Bar (show when files are selected) */}
+            {selectedFiles.length > 0 && convertedFiles.length === 0 && (
+              <div className="bg-white border rounded shadow mb-8">
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
+                      </svg>
+                      <span className="text-gray-800 font-medium">{selectedFiles.length} Image{selectedFiles.length > 1 ? 's' : ''} Selected</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <button
+                        className="ml-4 text-red-600 hover:text-red-800"
+                        onClick={resetConverter}
+                        title="Remove All"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                {/* File Name */}
-                <span className="flex-1 text-gray-800 truncate">{selectedFile.name}</span>
-                {/* Convert to label + Current Format (NO DROPDOWN) */}
-                <div className="flex items-center mx-4">
-                  <svg className="w-5 h-5 text-gray-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                  </svg>
-                  <span className="text-gray-700 font-medium">Convert to</span>
-                  <span className="ml-2 text-lg font-semibold text-red-600">{conversionFormat.toUpperCase()}</span>
+                {/* ✅ Har file ke samne chhota dropdown */}
+                <div className="max-h-60 overflow-y-auto p-4 space-y-3">
+                  {selectedFiles.map((item, index) => (
+                    <div key={index} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0">
+                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
+                      </svg>
+                      <span className="text-gray-800 truncate flex-1">{item.file.name}</span>
+                      {/* Per-file full format menu (toggle button + full menu like global) */}
+                      <div className="relative format-dropdown">
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setOpenFormatIndex(openFormatIndex === index ? null : index);
+                          }}
+                          className="px-3 py-1 border border-gray-300 rounded text-sm bg-white"
+                        >
+                          {item.format ? item.format.toUpperCase() : '...'}
+                        </button>
+                        {openFormatIndex === index && (
+                          <div className="absolute right-0 mt-2 w-80 bg-gray-900 rounded-lg shadow-2xl z-50 overflow-hidden">
+                            <div className="p-3 border-b border-gray-700">
+                              <div className="relative">
+                                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <input
+                                  type="text"
+                                  placeholder="Search Format"
+                                  value={searchQuery}
+                                  onChange={(e) => setSearchQuery(e.target.value)}
+                                  className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-red-500 focus:outline-none placeholder-gray-500 text-sm"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex max-h-56">
+                              <div className="w-28 bg-gray-800 border-r border-gray-700 overflow-y-auto">
+                                {Object.keys(formatCategories).map((category) => (
+                                  <button
+                                    key={category}
+                                    onClick={() => {
+                                      setSelectedCategory(category);
+                                      setSearchQuery('');
+                                    }}
+                                    className={`w-full text-left px-2 py-2 text-xs transition-colors ${
+                                      selectedCategory === category ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-750 hover:text-white'
+                                    }`}
+                                  >
+                                    {category}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="flex-1 p-3 overflow-y-auto bg-gray-900">
+                                <div className="grid grid-cols-3 gap-2">
+                                  {filteredFormats.map((fmt) => (
+                                    <button
+                                      key={fmt}
+                                      onClick={() => updateFileFormat(index, fmt.toLowerCase())}
+                                      className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                        item.format.toUpperCase() === fmt ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                                      }`}
+                                    >
+                                      {fmt}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {/* Edit single file button */}
+                      <button
+                        onClick={() => openEdit(index)}
+                        className="ml-3 text-blue-600 hover:text-blue-800 p-1"
+                        title="Edit"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5h6M4 21l7-7 3 3 7-7-3-3L8 17l-4 4z" />
+                        </svg>
+                      </button>
+                      {/* Remove single file button */}
+                      <button
+                        onClick={() => removeFile(index)}
+                        className="ml-3 text-red-600 hover:text-red-800 p-1"
+                        title="Remove"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                {/* Remove File Button */}
-                <button
-                  className="ml-4 text-red-600 hover:text-red-800"
-                  onClick={resetConverter}
-                  title="Remove"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
             )}
-
             {/* Add more files & Convert button row */}
-            {selectedFile && !convertedFile && (
+            {selectedFiles.length > 0 && convertedFiles.length === 0 && (
               <div className="flex flex-wrap items-center justify-between mb-8">
                 <div className="relative file-dropdown">
                   <button
@@ -353,7 +559,7 @@ function App() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                     </svg>
-                    Add more Files
+                    Add More Files
                     <svg className={`w-4 h-4 ml-2 transition-transform ${showFileDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
@@ -407,19 +613,15 @@ function App() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                   </svg>
-                  Convert
+                  Convert All
                 </button>
               </div>
             )}
-
-            {/* Upload Area (show only if no file is selected) */}
-            {!selectedFile && (
-              <div>
-                <svg className="mx-auto h-16 w-16 text-gray-400 mb-6" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+            {/* Upload Area — CENTERED, WITHOUT ICON */}
+            {selectedFiles.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-8">
                 <div className="relative inline-block file-dropdown">
-                  <div className="flex items-stretch shadow-lg rounded-lg overflow-hidden border border-red-700 w-fit mx-auto">
+                  <div className="flex items-stretch shadow-lg rounded-lg overflow-hidden border border-red-700">
                     <button
                       className="flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold px-8 py-4 text-lg focus:outline-none"
                       style={{ borderRight: '1px solid #fff' }}
@@ -429,19 +631,14 @@ function App() {
                           input.value = '';
                           input.removeAttribute('webkitdirectory');
                           input.removeAttribute('directory');
-                          input.removeAttribute('multiple');
+                          input.setAttribute('multiple', '');
                           input.accept = 'image/*';
                           input.click();
                         }
                       }}
                       type="button"
                     >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <rect x="3" y="3" width="18" height="18" rx="2" fill="#fff" fillOpacity="0.1"/>
-                        <path stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 8v8m4-4H8"/>
-                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="#fff" strokeWidth="2"/>
-                      </svg>
-                      <span>Select File</span>
+                      <span>Select File(s)</span>
                     </button>
                     <button
                       className="bg-red-700 hover:bg-red-800 text-white px-5 py-4 flex items-center focus:outline-none"
@@ -498,13 +695,12 @@ function App() {
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-gray-500 mt-4 text-center">or drop files here</p>
+                <p className="text-sm text-gray-500 mt-4">or drop files here</p>
               </div>
             )}
           </div>
-
           {/* Convert Button */}
-          {selectedFile && !convertedFile && (
+          {selectedFiles.length > 0 && convertedFiles.length === 0 && (
             <div className="flex justify-center mb-8 animate-fadeIn">
               <button
                 onClick={handleConvert}
@@ -523,40 +719,58 @@ function App() {
                     Converting...
                   </>
                 ) : (
-                  'Convert'
+                  'Convert All Images'
                 )}
               </button>
             </div>
           )}
-
           {/* Download Section */}
-          {convertedFile && (
-            <div className="mt-8 animate-fadeIn text-center">
+          {convertedFiles.length > 0 && (
+            <div className="mt-8 animate-fadeIn">
               <div className="flex items-center justify-center gap-2 text-green-600 font-semibold text-lg mb-6">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
                 </svg>
                 Conversion complete!
               </div>
-              <button
-                onClick={handleDownload}
-                className="px-10 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 font-semibold flex items-center gap-2 mx-auto mb-4"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                Download
-              </button>
-              <button
-                onClick={resetConverter}
-                className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-300"
-              >
-                Convert Another Image
-              </button>
+              <div className="space-y-4 mb-6">
+                {convertedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
+                      </svg>
+                      <div>
+                        <div className="text-gray-800 font-medium">{file.name}</div>
+                        <div className="text-xs text-gray-500">Original: {file.originalName} • Format: {file.format.toUpperCase()}</div>
+                        {/* Show applied options if they exist */}
+                        {file.appliedOptions && (
+                          <div className="text-xs text-gray-500">
+                            Applied: W{file.appliedOptions.width || 'Auto'} x H{file.appliedOptions.height || 'Auto'}, Fit: {file.appliedOptions.fit}, Strip: {file.appliedOptions.strip ? 'Yes' : 'No'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDownload(file)}
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                    >
+                      Download
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={resetConverter}
+                  className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-300"
+                >
+                  Convert Another Set
+                </button>
+              </div>
             </div>
           )}
         </div>
-
         {/* How to Convert Section */}
         <div className="bg-white rounded-lg shadow-xl p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
@@ -566,19 +780,21 @@ function App() {
           <div className="space-y-4">
             <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
               <span className="flex-shrink-0 w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center font-bold">1</span>
-              <p className="text-gray-700">Click the <span className="font-semibold text-red-600">"Select File"</span> button to upload your image files.</p>
+              <p className="text-gray-700">Click the <span className="font-semibold text-red-600">"Select File(s)"</span> button to upload multiple image files.</p>
             </div>
             <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
               <span className="flex-shrink-0 w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center font-bold">2</span>
-              <p className="text-gray-700">Select the target format from the <span className="font-semibold text-red-600">"to"</span> dropdown menu (JPG, PNG, or WEBP).</p>
+              <p className="text-gray-700">
+                Use the <span className="font-semibold text-red-600">top dropdown</span> to convert all images to the same format,
+                or use the <span className="font-semibold text-red-600">dropdown next to each file</span> to choose a different format for each.
+              </p>
             </div>
             <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
               <span className="flex-shrink-0 w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center font-bold">3</span>
-              <p className="text-gray-700">Click the <span className="font-semibold text-red-600">"Convert"</span> button to start the conversion process.</p>
+              <p className="text-gray-700">Click the <span className="font-semibold text-red-600">"Convert All Images"</span> button to start converting.</p>
             </div>
           </div>
         </div>
-
         {/* Valuable Image Tools Section */}
         <div className="bg-white rounded-lg shadow-xl p-8 mb-8">
           <button
@@ -633,7 +849,6 @@ function App() {
             </div>
           </div>
         </div>
-
         {/* Image Converters Section */}
         <div className="bg-white rounded-lg shadow-xl p-8 mb-8">
           <div className="flex items-center gap-3 mb-6">
@@ -642,7 +857,6 @@ function App() {
             </svg>
             <h2 className="text-2xl font-bold text-gray-800">IMAGE CONVERTERS</h2>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-3">
             <div className="space-y-3">
               {['3FR Converter', 'ARW Converter', 'AVIF Converter', 'BMP Converter', 'CR2 Converter', 'CR3 Converter', 'CRW Converter', 'DCR Converter', 'DNG Converter', 'EPS Converter', 'ERF Converter', 'GIF Converter', 'HEIC Converter', 'HEIF Converter'].map((converter) => (
@@ -679,7 +893,6 @@ function App() {
             </div>
           </div>
         </div>
-
         {/* Features Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
@@ -720,7 +933,6 @@ function App() {
           ))}
         </div>
       </main>
-
       {/* Footer */}
       <footer className="bg-white mt-16 py-8 border-t-2 border-gray-200">
         <div className="container mx-auto px-4 text-center">
@@ -735,14 +947,124 @@ function App() {
           <p className="text-gray-600">© {new Date().getFullYear()} All rights reserved.</p>
         </div>
       </footer>
-
+      {/* Hidden File Input */}
       <input
         id="fileInput"
         type="file"
         accept="image/*"
         onChange={handleFileChange}
         className="hidden"
+        multiple
       />
+      {/* Edit Modal */}
+      {editIndex !== null && editData && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black opacity-50" onClick={closeEdit}></div>
+          <div className="relative bg-white rounded-lg shadow-xl w-11/12 max-w-2xl p-6 z-70">
+            <div className="flex items-start justify-between">
+              <h3 className="text-xl font-semibold">Edit Image Options</h3>
+              <button onClick={closeEdit} className="text-gray-600 hover:text-gray-800">&times;</button>
+            </div>
+            <div className="mt-4 flex flex-col md:flex-row gap-4">
+              <div className="flex-shrink-0 w-48 h-48 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+                <img src={editData.url} alt={editData.name} className="max-w-full max-h-full" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-800">{editData.name}</p>
+                <p className="text-sm text-gray-500 mt-2">Original Dimensions: <span className="font-semibold text-gray-700">{editData.width} × {editData.height}</span></p>
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Width</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editData.options.width || ''}
+                        onChange={(e) => setEditData(prev => ({
+                          ...prev,
+                          options: { ...prev.options, width: e.target.value }
+                        }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                        placeholder="Leave blank for auto"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Height</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editData.options.height || ''}
+                        onChange={(e) => setEditData(prev => ({
+                          ...prev,
+                          options: { ...prev.options, height: e.target.value }
+                        }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                        placeholder="Leave blank for auto"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fit</label>
+                    <select
+                      value={editData.options.fit}
+                      onChange={(e) => setEditData(prev => ({
+                        ...prev,
+                        options: { ...prev.options, fit: e.target.value }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                    >
+                      <option value="max">Max</option>
+                      <option value="crop">Crop</option>
+                      <option value="scale">Scale</option>
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Max: Resizes to fit within dimensions without increasing size.
+                      Crop: Resizes to fill dimensions and crops excess.
+                      Scale: Enforces exact dimensions by scaling.
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <label className="inline-flex items-center">
+                      <input
+                        type="radio"
+                        checked={!editData.options.strip}
+                        onChange={() => setEditData(prev => ({
+                          ...prev,
+                          options: { ...prev.options, strip: false }
+                        }))}
+                        className="form-radio h-4 w-4 text-red-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Yes</span>
+                    </label>
+                    <label className="inline-flex items-center ml-6">
+                      <input
+                        type="radio"
+                        checked={editData.options.strip}
+                        onChange={() => setEditData(prev => ({
+                          ...prev,
+                          options: { ...prev.options, strip: true }
+                        }))}
+                        className="form-radio h-4 w-4 text-red-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">No</span>
+                    </label>
+                    <span className="ml-4 text-sm text-gray-500">Remove any metadata such as EXIF data.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={closeEdit} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+              <button
+                onClick={saveEdit}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Okay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
