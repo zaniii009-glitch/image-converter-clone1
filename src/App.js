@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
 function App() {
-  hekki
   const [selectedFile, setSelectedFile] = useState(null);
   const [convertedFile, setConvertedFile] = useState(null);
   const [conversionFormat, setConversionFormat] = useState('jpg');
