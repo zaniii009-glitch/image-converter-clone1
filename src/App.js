@@ -333,444 +333,411 @@ function App() {
             You can use the options to control image resolution, quality and file size.
           </p>
         </div>
-        <div className="bg-white rounded-lg shadow-xl p-8 mb-8">
-          {/* ✅ Upar wala original global dropdown — ab "Per File" ki jagah yeh hai */}
-          <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
-            <span className="text-gray-700 font-medium text-lg">convert</span>
-            <select
-              className="px-6 py-3 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-lg"
-              value={selectedFiles.length > 0 ? 'images' : ''}
-              disabled
-            >
-              <option value="">...</option>
-              {selectedFiles.length > 0 && <option value="images">Multiple Images</option>}
-            </select>
-            <span className="text-gray-700 font-medium text-lg">to</span>
-            {/* ✅ Original Full-Featured Global Dropdown */}
-            <div className="relative format-dropdown">
-              <button
-                onClick={() => setShowFormatMenu(!showFormatMenu)}
-                className="px-6 py-3 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-lg font-medium flex items-center gap-2 hover:border-red-400 transition-colors"
-              >
-                {globalFormat.toUpperCase()}
-                <svg className={`w-4 h-4 transition-transform ${showFormatMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
-              {/* Format Menu Dropdown */}
-              {showFormatMenu && (
-                <div className="absolute top-full mt-2 w-96 bg-gray-900 rounded-lg shadow-2xl z-50 overflow-hidden">
-                  <div className="p-3 border-b border-gray-700">
-                    <div className="relative">
-                      <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                      </svg>
-                      <input
-                        type="text"
-                        placeholder="Search Format"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-red-500 focus:outline-none placeholder-gray-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex max-h-96">
-                    <div className="w-40 bg-gray-800 border-r border-gray-700 overflow-y-auto">
-                      {Object.keys(formatCategories).map((category) => (
-                        <button
-                          key={category}
-                          onClick={() => {
-                            setSelectedCategory(category);
-                            setSearchQuery('');
-                          }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                            selectedCategory === category
-                              ? 'bg-gray-700 text-white'
-                              : 'text-gray-400 hover:bg-gray-750 hover:text-white'
-                          }`}
-                        >
-                          {category}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex-1 p-4 overflow-y-auto bg-gray-900">
-                      <div className="grid grid-cols-3 gap-2">
-                        {filteredFormats.map((format) => (
-                          <button
-                            key={format}
-                            onClick={() => {
-                              applyGlobalFormat(format.toLowerCase());
-                              setShowFormatMenu(false);
-                              setSearchQuery('');
-                            }}
-                            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                              globalFormat.toUpperCase() === format
-                                ? 'bg-red-600 text-white'
-                                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                            }`}
-                          >
-                            {format}
-                          </button>
-                        ))}
-                      </div>
-                      {filteredFormats.length === 0 && (
-                        <p className="text-gray-500 text-center py-8">No formats found</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+<div className="bg-white rounded-lg shadow-xl p-8 mb-8">
+  {/* Global Format Selector */}
+  <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+    <span className="text-gray-700 font-medium text-lg">convert</span>
+    <select
+      className="px-6 py-3 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-lg"
+      value={selectedFiles.length > 0 ? 'images' : ''}
+      disabled
+    >
+      <option value="">...</option>
+      {selectedFiles.length > 0 && <option value="images">Multiple Images</option>}
+    </select>
+    <span className="text-gray-700 font-medium text-lg">to</span>
+    {/* Global Format Dropdown */}
+    <div className="relative format-dropdown">
+      <button
+        onClick={() => setShowFormatMenu(!showFormatMenu)}
+        className="px-6 py-3 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-lg font-medium flex items-center gap-2 hover:border-red-400 transition-colors"
+      >
+        {globalFormat.toUpperCase()}
+        <svg className={`w-4 h-4 transition-transform ${showFormatMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      {showFormatMenu && (
+        <div className="absolute top-full mt-2 w-96 bg-gray-900 rounded-lg shadow-2xl z-50 overflow-hidden">
+          <div className="p-3 border-b border-gray-700">
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+              <input
+                type="text"
+                placeholder="Search Format"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-red-500 focus:outline-none placeholder-gray-500"
+              />
+            </div>
+          </div>
+          <div className="flex max-h-96">
+            <div className="w-40 bg-gray-800 border-r border-gray-700 overflow-y-auto">
+              {Object.keys(formatCategories).map((category) => (
+                <button
+                  key={category}
+                  onClick={() => {
+                    setSelectedCategory(category);
+                    setSearchQuery('');
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:bg-gray-750 hover:text-white'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 p-4 overflow-y-auto bg-gray-900">
+              <div className="grid grid-cols-3 gap-2">
+                {filteredFormats.map((format) => (
+                  <button
+                    key={format}
+                    onClick={() => {
+                      applyGlobalFormat(format.toLowerCase());
+                      setShowFormatMenu(false);
+                      setSearchQuery('');
+                    }}
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                      globalFormat.toUpperCase() === format
+                        ? 'bg-red-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    {format}
+                  </button>
+                ))}
+              </div>
+              {filteredFormats.length === 0 && (
+                <p className="text-gray-500 text-center py-8">No formats found</p>
               )}
             </div>
           </div>
-          {/* Upload Section */}
-          <div className="mb-8">
-            {/* File List Bar (show when files are selected) */}
-            {selectedFiles.length > 0 && convertedFiles.length === 0 && (
-              <div className="bg-white border rounded shadow mb-8">
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
-                      </svg>
-                      <span className="text-gray-800 font-medium">{selectedFiles.length} Image{selectedFiles.length > 1 ? 's' : ''} Selected</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <button
-                        className="ml-4 text-red-600 hover:text-red-800"
-                        onClick={resetConverter}
-                        title="Remove All"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                {/* ✅ Har file ke samne chhota dropdown */}
-                <div className="max-h-60 overflow-y-auto p-4 space-y-3">
-                  {selectedFiles.map((item, index) => (
-                    <div key={index} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0">
-                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
-                      </svg>
-                      <span className="text-gray-800 truncate flex-1">{item.file.name}</span>
-                      {/* Per-file full format menu (toggle button + full menu like global) */}
-                      <div className="relative format-dropdown">
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            setOpenFormatIndex(openFormatIndex === index ? null : index);
-                          }}
-                          className="px-3 py-1 border border-gray-300 rounded text-sm bg-white"
-                        >
-                          {item.format ? item.format.toUpperCase() : '...'}
-                        </button>
-                        {openFormatIndex === index && (
-                          <div className="absolute right-0 mt-2 w-80 bg-gray-900 rounded-lg shadow-2xl z-50 overflow-hidden">
-                            <div className="p-3 border-b border-gray-700">
-                              <div className="relative">
-                                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                                <input
-                                  type="text"
-                                  placeholder="Search Format"
-                                  value={searchQuery}
-                                  onChange={(e) => setSearchQuery(e.target.value)}
-                                  className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-red-500 focus:outline-none placeholder-gray-500 text-sm"
-                                />
-                              </div>
-                            </div>
-                            <div className="flex max-h-56">
-                              <div className="w-28 bg-gray-800 border-r border-gray-700 overflow-y-auto">
-                                {Object.keys(formatCategories).map((category) => (
-                                  <button
-                                    key={category}
-                                    onClick={() => {
-                                      setSelectedCategory(category);
-                                      setSearchQuery('');
-                                    }}
-                                    className={`w-full text-left px-2 py-2 text-xs transition-colors ${
-                                      selectedCategory === category ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-750 hover:text-white'
-                                    }`}
-                                  >
-                                    {category}
-                                  </button>
-                                ))}
-                              </div>
-                              <div className="flex-1 p-3 overflow-y-auto bg-gray-900">
-                                <div className="grid grid-cols-3 gap-2">
-                                  {filteredFormats.map((fmt) => (
-                                    <button
-                                      key={fmt}
-                                      onClick={() => updateFileFormat(index, fmt.toLowerCase())}
-                                      className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                        item.format.toUpperCase() === fmt ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                                      }`}
-                                    >
-                                      {fmt}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      {/* Edit single file button */}
-                      <button
-                        onClick={() => openEdit(index)}
-                        className="ml-3 text-blue-600 hover:text-blue-800 p-1"
-                        title="Edit"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5h6M4 21l7-7 3 3 7-7-3-3L8 17l-4 4z" />
-                        </svg>
-                      </button>
-                      {/* Remove single file button */}
-                      <button
-                        onClick={() => removeFile(index)}
-                        className="ml-3 text-red-600 hover:text-red-800 p-1"
-                        title="Remove"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Add more files & Convert button row */}
-            {selectedFiles.length > 0 && convertedFiles.length === 0 && (
-              <div className="flex flex-wrap items-center justify-between mb-8">
-                <div className="relative file-dropdown">
-                  <button
-                    className="bg-gray-800 text-white px-6 py-3 rounded font-semibold flex items-center gap-2 hover:bg-gray-900"
-                    onClick={e => {
-                      e.stopPropagation();
-                      setShowFileDropdown(v => !v);
-                    }}
-                    type="button"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add More Files
-                    <svg className={`w-4 h-4 ml-2 transition-transform ${showFileDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </button>
-                  {showFileDropdown && (
-                    <div className="absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded shadow-lg z-50 text-left">
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('computer')}
-                      >
-                        <span className="mr-2">📁</span> From my Computer
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('folder')}
-                      >
-                        <span className="mr-2">📂</span> From Folder
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('url')}
-                      >
-                        <span className="mr-2">🔗</span> By URL
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('gdrive')}
-                      >
-                        <span className="mr-2">🟦</span> From Google Drive
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('dropbox')}
-                      >
-                        <span className="mr-2">🟦</span> From Dropbox
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('onedrive')}
-                      >
-                        <span className="mr-2">⬛</span> From OneDrive
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={handleConvert}
-                  disabled={isConverting}
-                  className="bg-red-400 hover:bg-red-500 text-white px-10 py-3 rounded font-semibold flex items-center gap-2 transition-all duration-200"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                  </svg>
-                  Convert All
-                </button>
-              </div>
-            )}
-            {/* Upload Area — CENTERED, WITHOUT ICON */}
-            {selectedFiles.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8">
-                <div className="relative inline-block file-dropdown">
-                  <div className="flex items-stretch shadow-lg rounded-lg overflow-hidden border border-red-700">
-                    <button
-                      className="flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold px-8 py-4 text-lg focus:outline-none"
-                      style={{ borderRight: '1px solid #fff' }}
-                      onClick={() => {
-                        const input = document.getElementById('fileInput');
-                        if (input) {
-                          input.value = '';
-                          input.removeAttribute('webkitdirectory');
-                          input.removeAttribute('directory');
-                          input.setAttribute('multiple', '');
-                          input.accept = 'image/*';
-                          input.click();
-                        }
-                      }}
-                      type="button"
-                    >
-                      <span>Select File(s)</span>
-                    </button>
-                    <button
-                      className="bg-red-700 hover:bg-red-800 text-white px-5 py-4 flex items-center focus:outline-none"
-                      onClick={e => {
-                        e.stopPropagation();
-                        setShowFileDropdown((v) => !v);
-                      }}
-                      type="button"
-                      tabIndex={0}
-                    >
-                      <svg className={`w-5 h-5 transition-transform ${showFileDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
-                      </svg>
-                    </button>
-                  </div>
-                  {showFileDropdown && (
-                    <div className="absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded shadow-lg z-50 text-left">
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('computer')}
-                      >
-                        <span className="mr-2">📁</span> From my Computer
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('folder')}
-                      >
-                        <span className="mr-2">📂</span> From Folder
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('url')}
-                      >
-                        <span className="mr-2">🔗</span> By URL
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('gdrive')}
-                      >
-                        <span className="mr-2">🟦</span> From Google Drive
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('dropbox')}
-                      >
-                        <span className="mr-2">🟦</span> From Dropbox
-                      </button>
-                      <button
-                        className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                        onClick={() => handleFileDropdown('onedrive')}
-                      >
-                        <span className="mr-2">⬛</span> From OneDrive
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm text-gray-500 mt-4">or drop files here</p>
-              </div>
-            )}
+        </div>
+      )}
+    </div>
+  </div>
+
+  {/* Upload & File List Section */}
+  <div className="mb-8">
+    {/* File List — NO internal scroll */}
+    {selectedFiles.length > 0 && convertedFiles.length === 0 && (
+      <div className="bg-white border rounded shadow mb-8">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
+              </svg>
+              <span className="text-gray-800 font-medium">{selectedFiles.length} Image{selectedFiles.length > 1 ? 's' : ''} Selected</span>
+            </div>
+            <button
+              className="text-red-600 hover:text-red-800"
+              onClick={resetConverter}
+              title="Remove All"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          {/* Convert Button */}
-          {selectedFiles.length > 0 && convertedFiles.length === 0 && (
-            <div className="flex justify-center mb-8 animate-fadeIn">
-              <button
-                onClick={handleConvert}
-                disabled={isConverting}
-                className={`px-12 py-4 rounded-lg text-white font-semibold text-lg transition-all duration-300 flex items-center gap-3 ${
-                  isConverting
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-red-600 hover:bg-red-700 hover:shadow-lg'
-                }`}
-              >
-                {isConverting ? (
-                  <>
-                    <svg className="w-5 h-5 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                    Converting...
-                  </>
-                ) : (
-                  'Convert All Images'
+        </div>
+
+        {/* ✅ REMOVED max-h-60 and overflow-y-auto — now full height */}
+        <div className="p-4 space-y-3">
+          {selectedFiles.map((item, index) => (
+            <div key={index} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0">
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
+              </svg>
+              <span className="text-gray-800 truncate flex-1">{item.file.name}</span>
+
+              {/* Per-file format dropdown */}
+              <div className="relative format-dropdown">
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    setOpenFormatIndex(openFormatIndex === index ? null : index);
+                  }}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm bg-white"
+                >
+                  {item.format ? item.format.toUpperCase() : '...'}
+                </button>
+                {openFormatIndex === index && (
+                  <div className="absolute right-0 mt-2 w-80 bg-gray-900 rounded-lg shadow-2xl z-50 overflow-hidden">
+                    <div className="p-3 border-b border-gray-700">
+                      <div className="relative">
+                        <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input
+                          type="text"
+                          placeholder="Search Format"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-red-500 focus:outline-none placeholder-gray-500 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex max-h-56">
+                      <div className="w-28 bg-gray-800 border-r border-gray-700 overflow-y-auto">
+                        {Object.keys(formatCategories).map((category) => (
+                          <button
+                            key={category}
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              setSearchQuery('');
+                            }}
+                            className={`w-full text-left px-2 py-2 text-xs transition-colors ${
+                              selectedCategory === category ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-750 hover:text-white'
+                            }`}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex-1 p-3 overflow-y-auto bg-gray-900">
+                        <div className="grid grid-cols-3 gap-2">
+                          {filteredFormats.map((fmt) => (
+                            <button
+                              key={fmt}
+                              onClick={() => updateFileFormat(index, fmt.toLowerCase())}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                item.format.toUpperCase() === fmt ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                              }`}
+                            >
+                              {fmt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
+              </div>
+
+              {/* Edit & Remove buttons */}
+              <button
+                onClick={() => openEdit(index)}
+                className="text-blue-600 hover:text-blue-800 p-1"
+                title="Edit"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5h6M4 21l7-7 3 3 7-7-3-3L8 17l-4 4z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => removeFile(index)}
+                className="text-red-600 hover:text-red-800 p-1"
+                title="Remove"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Add More & Convert Buttons */}
+    {selectedFiles.length > 0 && convertedFiles.length === 0 && (
+      <div className="flex flex-wrap items-center justify-between mb-8">
+        <div className="relative file-dropdown">
+          <button
+            className="bg-gray-800 text-white px-6 py-3 rounded font-semibold flex items-center gap-2 hover:bg-gray-900"
+            onClick={e => {
+              e.stopPropagation();
+              setShowFileDropdown(v => !v);
+            }}
+            type="button"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add More Files
+            <svg className={`w-4 h-4 ml-2 transition-transform ${showFileDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          {showFileDropdown && (
+            <div className="absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded shadow-lg z-50 text-left">
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('computer')}>
+                <span className="mr-2">📁</span> From my Computer
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('folder')}>
+                <span className="mr-2">📂</span> From Folder
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('url')}>
+                <span className="mr-2">🔗</span> By URL
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('gdrive')}>
+                <span className="mr-2">🟦</span> From Google Drive
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('dropbox')}>
+                <span className="mr-2">🟦</span> From Dropbox
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('onedrive')}>
+                <span className="mr-2">⬛</span> From OneDrive
               </button>
             </div>
           )}
-          {/* Download Section */}
-          {convertedFiles.length > 0 && (
-            <div className="mt-8 animate-fadeIn">
-              <div className="flex items-center justify-center gap-2 text-green-600 font-semibold text-lg mb-6">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                </svg>
-                Conversion complete!
-              </div>
-              <div className="space-y-4 mb-6">
-                {convertedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
-                      </svg>
-                      <div>
-                        <div className="text-gray-800 font-medium">{file.name}</div>
-                        <div className="text-xs text-gray-500">Original: {file.originalName} • Format: {file.format.toUpperCase()}</div>
-                        {/* Show applied options if they exist */}
-                        {file.appliedOptions && (
-                          <div className="text-xs text-gray-500">
-                            Applied: W{file.appliedOptions.width || 'Auto'} x H{file.appliedOptions.height || 'Auto'}, Fit: {file.appliedOptions.fit}, Strip: {file.appliedOptions.strip ? 'Yes' : 'No'}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDownload(file)}
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                    >
-                      Download
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={resetConverter}
-                  className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-300"
-                >
-                  Convert Another Set
-                </button>
-              </div>
+        </div>
+        <button
+          onClick={handleConvert}
+          disabled={isConverting}
+          className="bg-red-400 hover:bg-red-500 text-white px-10 py-3 rounded font-semibold flex items-center gap-2 transition-all duration-200"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Convert All
+        </button>
+      </div>
+    )}
+
+    {/* Initial Upload Area */}
+    {selectedFiles.length === 0 && (
+      <div className="flex flex-col items-center justify-center py-8">
+        <div className="relative inline-block file-dropdown">
+          <div className="flex items-stretch shadow-lg rounded-lg overflow-hidden border border-red-700">
+            <button
+              className="flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold px-8 py-4 text-lg focus:outline-none"
+              style={{ borderRight: '1px solid #fff' }}
+              onClick={() => {
+                const input = document.getElementById('fileInput');
+                if (input) {
+                  input.value = '';
+                  input.removeAttribute('webkitdirectory');
+                  input.removeAttribute('directory');
+                  input.setAttribute('multiple', '');
+                  input.accept = 'image/*';
+                  input.click();
+                }
+              }}
+              type="button"
+            >
+              <span>Select File(s)</span>
+            </button>
+            <button
+              className="bg-red-700 hover:bg-red-800 text-white px-5 py-4 flex items-center focus:outline-none"
+              onClick={e => {
+                e.stopPropagation();
+                setShowFileDropdown((v) => !v);
+              }}
+              type="button"
+              tabIndex={0}
+            >
+              <svg className={`w-5 h-5 transition-transform ${showFileDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+          </div>
+          {showFileDropdown && (
+            <div className="absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded shadow-lg z-50 text-left">
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('computer')}>
+                <span className="mr-2">📁</span> From my Computer
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('folder')}>
+                <span className="mr-2">📂</span> From Folder
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('url')}>
+                <span className="mr-2">🔗</span> By URL
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('gdrive')}>
+                <span className="mr-2">🟦</span> From Google Drive
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('dropbox')}>
+                <span className="mr-2">🟦</span> From Dropbox
+              </button>
+              <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('onedrive')}>
+                <span className="mr-2">⬛</span> From OneDrive
+              </button>
             </div>
           )}
         </div>
+        <p className="text-sm text-gray-500 mt-4">or drop files here</p>
+      </div>
+    )}
+  </div>
+
+  {/* Convert Button (Centered) */}
+  {selectedFiles.length > 0 && convertedFiles.length === 0 && (
+    <div className="flex justify-center mb-8 animate-fadeIn">
+      <button
+        onClick={handleConvert}
+        disabled={isConverting}
+        className={`px-12 py-4 rounded-lg text-white font-semibold text-lg transition-all duration-300 flex items-center gap-3 ${
+          isConverting
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-red-600 hover:bg-red-700 hover:shadow-lg'
+        }`}
+      >
+        {isConverting ? (
+          <>
+            <svg className="w-5 h-5 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Converting...
+          </>
+        ) : (
+          'Convert All Images'
+        )}
+      </button>
+    </div>
+  )}
+
+  {/* Download Section */}
+  {convertedFiles.length > 0 && (
+    <div className="mt-8 animate-fadeIn">
+      <div className="flex items-center justify-center gap-2 text-green-600 font-semibold text-lg mb-6">
+        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+        </svg>
+        Conversion complete!
+      </div>
+      <div className="space-y-4 mb-6">
+        {convertedFiles.map((file, index) => (
+          <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
+              </svg>
+              <div>
+                <div className="text-gray-800 font-medium">{file.name}</div>
+                <div className="text-xs text-gray-500">Original: {file.originalName} • Format: {file.format.toUpperCase()}</div>
+                {file.appliedOptions && (
+                  <div className="text-xs text-gray-500">
+                    Applied: W{file.appliedOptions.width || 'Auto'} x H{file.appliedOptions.height || 'Auto'}, Fit: {file.appliedOptions.fit}, Strip: {file.appliedOptions.strip ? 'Yes' : 'No'}
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => handleDownload(file)}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+            >
+              Download
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-center gap-4">
+        <button
+          onClick={resetConverter}
+          className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-300"
+        >
+          Convert Another Set
+        </button>
+      </div>
+    </div>
+  )}
+</div>
         {/* How to Convert Section */}
         <div className="bg-white rounded-lg shadow-xl p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
