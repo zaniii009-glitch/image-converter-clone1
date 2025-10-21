@@ -12,6 +12,8 @@ function App() {
   const [showFileDropdown, setShowFileDropdown] = useState(false);
 
   const formatCategories = {
+    // jjhbjhb
+    'Image': ['JPG', 'PNG', 'GIF', 'WEBP', 'BMP', 'SVG', 'ICO', 'TIFF'],
     'Archive': ['AZW', 'AZW3', 'AZW4', 'CBR', 'CBZ'],
     'Audio': ['MP3', 'WAV', 'AAC', 'FLAC', 'OGG'],
     'Cad': ['DWG', 'DXF', 'DWF'],
