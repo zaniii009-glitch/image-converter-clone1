@@ -1,6 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function App() {
+  // ========== Dark Mode Logic ==========
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved === 'true' ? true : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', darkMode);
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  // ========== Existing State & Logic (Unchanged) ==========
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [convertedFiles, setConvertedFiles] = useState([]);
   const [globalFormat, setGlobalFormat] = useState('jpg');
@@ -13,7 +29,7 @@ function App() {
   const [openFormatIndex, setOpenFormatIndex] = useState(null);
   const [editIndex, setEditIndex] = useState(null);
   const [editData, setEditData] = useState(null);
-  const [urlInput, setUrlInput] = useState(''); // For URL modal
+  const [urlInput, setUrlInput] = useState('');
 
   const formatCategories = {
     'Archive': ['AZW', 'AZW3', 'AZW4', 'CBR', 'CBZ'],
@@ -36,7 +52,6 @@ function App() {
       )
     : formatCategories[selectedCategory] || [];
 
-  // ✅ NEW: Convert URL to File object
   const urlToFile = async (url, filename) => {
     try {
       const response = await fetch(url);
@@ -60,7 +75,6 @@ function App() {
       const validImageTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'tiff'];
       return mime.startsWith('image/') || validImageTypes.includes(ext);
     });
-
     if (imageFiles.length > 0) {
       const filesWithFormat = imageFiles.map(file => ({
         file,
@@ -210,14 +224,12 @@ function App() {
     if (convertedFiles.length) setConvertedFiles([]);
   };
 
-  // ✅ NEW: Handle URL input
   const handleAddByUrl = async () => {
     const url = urlInput.trim();
     if (!url) {
       alert('Please enter a valid image URL');
       return;
     }
-
     try {
       const filename = url.split('/').pop().split('?')[0] || 'image.jpg';
       const file = await urlToFile(url, filename);
@@ -263,11 +275,9 @@ function App() {
         input.click();
       }
     } else if (option === 'url') {
-      // Show URL input modal
       const userUrl = prompt('Enter image URL (must end with .jpg, .png, etc.):');
       if (userUrl) {
         setUrlInput(userUrl);
-        // Process after small delay to allow state update
         setTimeout(() => handleAddByUrl(), 0);
       }
     } else {
@@ -319,10 +329,12 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden" onClick={(e) => {
-      if (!e.target.closest('.format-dropdown')) setShowFormatMenu(false);
-      if (!e.target.closest('.file-dropdown')) setShowFileDropdown(false);
-    }}>
+    <div className={`min-h-screen overflow-x-hidden transition-colors duration-300 ${darkMode ? 'dark bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}
+      onClick={(e) => {
+        if (!e.target.closest('.format-dropdown')) setShowFormatMenu(false);
+        if (!e.target.closest('.file-dropdown')) setShowFileDropdown(false);
+      }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -339,12 +351,12 @@ function App() {
         html { scroll-behavior: smooth; }
         button:focus, input:focus {
           outline: none;
-          box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
+          box-shadow: 0 0 0 3px ${darkMode ? 'rgba(129, 140, 248, 0.4)' : 'rgba(79, 70, 229, 0.3)'};
         }
       `}</style>
 
       {/* Header */}
-      <header className="bg-indigo-700 shadow-lg sticky top-0 z-50">
+      <header className={`${darkMode ? 'bg-indigo-900 shadow-lg' : 'bg-indigo-700 shadow-lg'} sticky top-0 z-50`}>
         <div className="container mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -355,12 +367,31 @@ function App() {
               </div>
               <h1 className="text-2xl font-bold text-white">Image Converter</h1>
             </div>
-            <div className="hidden md:flex items-center gap-5">
-              <button className="text-indigo-200 hover:text-white transition-colors font-medium">Tools</button>
-              <button className="text-indigo-200 hover:text-white transition-colors font-medium">API</button>
-              <button className="text-indigo-200 hover:text-white transition-colors font-medium">Pricing</button>
-              <button className="px-4 py-2 bg-indigo-800 text-white rounded-lg hover:bg-indigo-900 transition-colors font-medium">Sign Up</button>
-              <button className="px-4 py-2 text-indigo-200 hover:text-white transition-colors font-medium">Login</button>
+            <div className="flex items-center gap-4">
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`p-2 rounded-full ${darkMode ? 'bg-yellow-400 text-gray-900' : 'bg-gray-800 text-yellow-300'}`}
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                  </svg>
+                )}
+              </button>
+
+              <div className="hidden md:flex items-center gap-5">
+                <button className={`${darkMode ? 'text-indigo-200 hover:text-white' : 'text-indigo-200 hover:text-white'} transition-colors font-medium`}>Tools</button>
+                <button className={`${darkMode ? 'text-indigo-200 hover:text-white' : 'text-indigo-200 hover:text-white'} transition-colors font-medium`}>API</button>
+                <button className={`${darkMode ? 'text-indigo-200 hover:text-white' : 'text-indigo-200 hover:text-white'} transition-colors font-medium`}>Pricing</button>
+                <button className={`px-4 py-2 ${darkMode ? 'bg-indigo-800 hover:bg-indigo-700' : 'bg-indigo-800 hover:bg-indigo-900'} text-white rounded-lg transition-colors font-medium`}>Sign Up</button>
+                <button className={`${darkMode ? 'text-indigo-200 hover:text-white' : 'text-indigo-200 hover:text-white'} px-4 py-2 transition-colors font-medium`}>Login</button>
+              </div>
             </div>
           </div>
         </div>
@@ -369,25 +400,25 @@ function App() {
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Hero */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Image Converter</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h2 className={`text-4xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Image Converter</h2>
+          <p className={`text-xl max-w-3xl mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
             CloudConvert converts your image files online. Amongst many others, we support PNG, JPG, GIF, WEBP and HEIC.
             You can use the options to control image resolution, quality and file size.
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-10">
+        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-sm border p-8 mb-10`}>
           {/* Global Format Selector */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
-            <span className="text-gray-700 font-medium">convert</span>
-            <div className="px-4 py-2 bg-gray-100 rounded-lg font-medium text-gray-800 min-w-[160px] text-center truncate">
+            <span className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} font-medium`}>convert</span>
+            <div className={`px-4 py-2 ${darkMode ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-gray-800'} rounded-lg font-medium min-w-[160px] text-center truncate`}>
               {selectedFiles.length === 1
                 ? selectedFiles[0].file.name
                 : selectedFiles.length > 1
                 ? 'Multiple Images'
                 : '...'}
             </div>
-            <span className="text-gray-700 font-medium">to</span>
+            <span className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} font-medium`}>to</span>
             <div className="relative format-dropdown">
               <button
                 onClick={() => setShowFormatMenu(!showFormatMenu)}
@@ -465,14 +496,16 @@ function App() {
 
           {/* File List */}
           {selectedFiles.length > 0 && convertedFiles.length === 0 && (
-            <div className="bg-white border rounded-lg shadow mb-8">
-              <div className="p-4 border-b border-gray-200">
+            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-lg shadow mb-8`}>
+              <div className={`p-4 ${darkMode ? 'border-b border-gray-700' : 'border-b border-gray-200'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
                     </svg>
-                    <span className="text-gray-800 font-medium">{selectedFiles.length} Image{selectedFiles.length > 1 ? 's' : ''} Selected</span>
+                    <span className={`${darkMode ? 'text-gray-200' : 'text-gray-800'} font-medium`}>
+                      {selectedFiles.length} Image{selectedFiles.length > 1 ? 's' : ''} Selected
+                    </span>
                   </div>
                   <button
                     className="text-red-500 hover:text-red-700"
@@ -487,18 +520,18 @@ function App() {
               </div>
               <div className="p-4 space-y-3">
                 {selectedFiles.map((item, index) => (
-                  <div key={index} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0">
+                  <div key={index} className={`flex items-center gap-3 py-2 ${darkMode ? 'border-b border-gray-700' : 'border-b border-gray-100'} last:border-b-0`}>
                     <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
                     </svg>
-                    <span className="text-gray-800 truncate flex-1">{item.file.name}</span>
+                    <span className={`${darkMode ? 'text-gray-200' : 'text-gray-800'} truncate flex-1`}>{item.file.name}</span>
                     <div className="relative format-dropdown">
                       <button
                         onClick={e => {
                           e.stopPropagation();
                           setOpenFormatIndex(openFormatIndex === index ? null : index);
                         }}
-                        className="px-3 py-1 border border-gray-300 rounded text-sm bg-white"
+                        className={`px-3 py-1 rounded text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border border-gray-300 text-gray-800'}`}
                       >
                         {item.format ? item.format.toUpperCase() : '...'}
                       </button>
@@ -624,10 +657,10 @@ function App() {
               <button
                 onClick={handleConvert}
                 disabled={isConverting}
-                className={`px-8 py-3.5 rounded-xl text-white font-semibold text-lg transition-all duration-300 flex items-center gap-3 shadow-md ${
+                className={`px-8 py-3.5 rounded-xl font-semibold text-lg transition-all duration-300 flex items-center gap-3 shadow-md ${
                   isConverting
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg'
+                    : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg text-white'
                 }`}
               >
                 {isConverting ? (
@@ -645,64 +678,62 @@ function App() {
           )}
 
           {/* Initial Upload Area */}
-        {/* Initial Upload Area */}
-{selectedFiles.length === 0 && (
-  <div className="flex flex-col items-center justify-center py-8">
-    <div className="relative inline-block file-dropdown">
-      <div className="flex items-stretch shadow-lg rounded-lg overflow-hidden border border-indigo-700">
-        <button
-          className="flex items-center gap-2 bg-indigo-700 hover:bg-indigo-800 text-white font-semibold px-8 py-4 text-lg focus:outline-none"
-          style={{ borderRight: '1px solid #fff' }}
-          onClick={() => handleFileDropdown('computer')}
-          type="button"
-        >
-          <span>Select File(s)</span>
-        </button>
-        <button
-          className="bg-indigo-700 hover:bg-indigo-800 text-white px-5 py-4 flex items-center focus:outline-none"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowFileDropdown((prev) => !prev);
-          }}
-          type="button"
-        >
-          <svg
-            className={`w-5 h-5 transition-transform ${showFileDropdown ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
-      {/* ✅ Dropdown Menu - YEH NAHI THA, AB ADD HO GAYA */}
-      {showFileDropdown && (
-        <div className="absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded shadow-lg z-50 text-left">
-          <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('computer')}>
-            <span className="mr-2">📁</span> From my Computer
-          </button>
-          <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('folder')}>
-            <span className="mr-2">📂</span> From Folder
-          </button>
-          <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('url')}>
-            <span className="mr-2">🔗</span> By URL
-          </button>
-          <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('gdrive')}>
-            <span className="mr-2">🟦</span> From Google Drive
-          </button>
-          <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('dropbox')}>
-            <span className="mr-2">🟦</span> From Dropbox
-          </button>
-          <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('onedrive')}>
-            <span className="mr-2">🟥</span> From OneDrive
-          </button>
-        </div>
-      )}
-      <p className="text-sm text-gray-500 mt-4">or drop files here</p>
-    </div>
-  </div>
-)}
+          {selectedFiles.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="relative inline-block file-dropdown">
+                <div className="flex items-stretch shadow-lg rounded-lg overflow-hidden border border-indigo-700">
+                  <button
+                    className="flex items-center gap-2 bg-indigo-700 hover:bg-indigo-800 text-white font-semibold px-8 py-4 text-lg focus:outline-none"
+                    style={{ borderRight: '1px solid #fff' }}
+                    onClick={() => handleFileDropdown('computer')}
+                    type="button"
+                  >
+                    <span>Select File(s)</span>
+                  </button>
+                  <button
+                    className="bg-indigo-700 hover:bg-indigo-800 text-white px-5 py-4 flex items-center focus:outline-none"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFileDropdown((prev) => !prev);
+                    }}
+                    type="button"
+                  >
+                    <svg
+                      className={`w-5 h-5 transition-transform ${showFileDropdown ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+                {showFileDropdown && (
+                  <div className="absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded shadow-lg z-50 text-left">
+                    <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('computer')}>
+                      <span className="mr-2">📁</span> From my Computer
+                    </button>
+                    <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('folder')}>
+                      <span className="mr-2">📂</span> From Folder
+                    </button>
+                    <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('url')}>
+                      <span className="mr-2">🔗</span> By URL
+                    </button>
+                    <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('gdrive')}>
+                      <span className="mr-2">🟦</span> From Google Drive
+                    </button>
+                    <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('dropbox')}>
+                      <span className="mr-2">🟦</span> From Dropbox
+                    </button>
+                    <button className="w-full flex items-center px-4 py-2 hover:bg-gray-100" onClick={() => handleFileDropdown('onedrive')}>
+                      <span className="mr-2">🟥</span> From OneDrive
+                    </button>
+                  </div>
+                )}
+                <p className={`text-sm mt-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}></p>
+              </div>
+            </div>
+          )}
 
           {/* Download Section */}
           {convertedFiles.length > 0 && (
@@ -715,18 +746,18 @@ function App() {
               </div>
               <div className="space-y-4 mb-6">
                 {convertedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div key={index} className={`flex items-center justify-between p-4 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg`}>
                     <div className="flex items-center gap-3">
                       <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4M7 7h10M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7l-2 2m0 0l2 2m-2-2h12" />
                       </svg>
                       <div>
-                        <div className="text-gray-800 font-medium">{file.name}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className={`${darkMode ? 'text-gray-200' : 'text-gray-800'} font-medium`}>{file.name}</div>
+                        <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                           Original: {file.originalName} • Format: {file.format.toUpperCase()}
                         </div>
                         {file.appliedOptions && (
-                          <div className="text-xs text-gray-500">
+                          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                             Applied: W{file.appliedOptions.width || 'Auto'} x H{file.appliedOptions.height || 'Auto'}, Fit: {file.appliedOptions.fit}, Strip: {file.appliedOptions.strip ? 'Yes' : 'No'}
                           </div>
                         )}
@@ -744,7 +775,9 @@ function App() {
               <div className="flex justify-center gap-4">
                 <button
                   onClick={resetConverter}
-                  className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-300"
+                  className={`px-8 py-3 rounded-lg transition-all duration-300 ${
+                    darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
                 >
                   Convert Another Set
                 </button>
@@ -754,42 +787,42 @@ function App() {
         </div>
 
         {/* How to Convert */}
-        <div className="bg-white rounded-xl shadow-sm p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm p-8 mb-8`}>
+          <h2 className={`text-2xl font-bold mb-6 flex items-center gap-3 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
             <span className="text-2xl">❓</span>
             How to Convert Images?
           </h2>
           <div className="space-y-4">
-            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className={`flex items-start gap-4 p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
               <span className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold">1</span>
-              <p className="text-gray-700">Click the <span className="font-semibold text-indigo-600">"Select File(s)"</span> button to upload multiple image files.</p>
+              <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Click the <span className="font-semibold text-indigo-600">"Select File(s)"</span> button to upload multiple image files.</p>
             </div>
-            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className={`flex items-start gap-4 p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
               <span className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold">2</span>
-              <p className="text-gray-700">
+              <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 Use the <span className="font-semibold text-indigo-600">top dropdown</span> to convert all images to the same format,
                 or use the <span className="font-semibold text-indigo-600">dropdown next to each file</span> to choose a different format for each.
               </p>
             </div>
-            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className={`flex items-start gap-4 p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
               <span className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold">3</span>
-              <p className="text-gray-700">Click the <span className="font-semibold text-indigo-600">"Convert All Images"</span> button to start converting.</p>
+              <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Click the <span className="font-semibold text-indigo-600">"Convert All Images"</span> button to start converting.</p>
             </div>
           </div>
         </div>
 
         {/* Valuable Tools */}
-        <div className="bg-white rounded-xl shadow-sm p-8 mb-8">
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm p-8 mb-8`}>
           <button
             className="w-full flex items-center justify-between text-left group"
             onClick={() => setIsToolsOpen(!isToolsOpen)}
           >
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+            <h2 className={`text-2xl font-bold flex items-center gap-3 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
               <span className="text-2xl">🛠️</span>
               Valuable Image Tools
             </h2>
             <svg
-              className={`w-6 h-6 text-gray-600 transition-transform duration-300 ${isToolsOpen ? 'rotate-180' : ''}`}
+              className={`w-6 h-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'} transition-transform duration-300 ${isToolsOpen ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -804,7 +837,7 @@ function App() {
               opacity: isToolsOpen ? 1 : 0
             }}
           >
-            <p className="text-gray-600 mt-4 mb-6">Here is a list of image tools to further edit your images.</p>
+            <p className={`mt-4 mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Here is a list of image tools to further edit your images.</p>
             <div className="space-y-3">
               {[
                 { name: 'Image Resizer', desc: 'Quick and easy way to resize an image to any size' },
@@ -816,7 +849,7 @@ function App() {
               ].map((tool, index) => (
                 <div
                   key={tool.name}
-                  className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300"
+                  className={`flex items-start gap-3 p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg hover:${darkMode ? 'bg-gray-600' : 'bg-gray-100'} transition-all duration-300`}
                 >
                   <span className="flex-shrink-0 w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-sm">
                     {index + 1}
@@ -825,7 +858,7 @@ function App() {
                     <a href="#" className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">
                       {tool.name}
                     </a>
-                    <span className="text-gray-600"> - {tool.desc}</span>
+                    <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}> - {tool.desc}</span>
                   </div>
                 </div>
               ))}
@@ -834,12 +867,12 @@ function App() {
         </div>
 
         {/* IMAGE CONVERTERS */}
-        <div className="bg-white rounded-xl shadow-sm p-8 mb-8">
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm p-8 mb-8`}>
           <div className="flex items-center gap-3 mb-6">
             <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
-            <h2 className="text-2xl font-bold text-gray-800">IMAGE CONVERTERS</h2>
+            <h2 className={`text-2xl font-bold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>IMAGE CONVERTERS</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-3">
             <div className="space-y-3">
@@ -847,7 +880,7 @@ function App() {
                 <a
                   key={converter}
                   href="#"
-                  className="block text-indigo-600 hover:text-teal-600 hover:underline transition-colors duration-200"
+                  className={`block ${darkMode ? 'text-indigo-400 hover:text-teal-400' : 'text-indigo-600 hover:text-teal-600'} hover:underline transition-colors duration-200`}
                 >
                   {converter}
                 </a>
@@ -858,7 +891,7 @@ function App() {
                 <a
                   key={converter}
                   href="#"
-                  className="block text-indigo-600 hover:text-teal-600 hover:underline transition-colors duration-200"
+                  className={`block ${darkMode ? 'text-indigo-400 hover:text-teal-400' : 'text-indigo-600 hover:text-teal-600'} hover:underline transition-colors duration-200`}
                 >
                   {converter}
                 </a>
@@ -869,7 +902,7 @@ function App() {
                 <a
                   key={converter}
                   href="#"
-                  className="block text-indigo-600 hover:text-teal-600 hover:underline transition-colors duration-200"
+                  className={`block ${darkMode ? 'text-indigo-400 hover:text-teal-400' : 'text-indigo-600 hover:text-teal-600'} hover:underline transition-colors duration-200`}
                 >
                   {converter}
                 </a>
@@ -899,22 +932,22 @@ function App() {
           ].map((feature, index) => (
             <div
               key={feature.title}
-              className="bg-white rounded-xl shadow-sm p-6 text-center hover:shadow-md transition-shadow duration-300"
+              className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm p-6 text-center hover:shadow-md transition-shadow duration-300`}
             >
               <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <svg className="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {feature.icon}
                 </svg>
               </div>
-              <h3 className="font-bold text-xl mb-2 text-gray-800">{feature.title}</h3>
-              <p className="text-gray-600">{feature.desc}</p>
+              <h3 className={`font-bold text-xl mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{feature.title}</h3>
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{feature.desc}</p>
             </div>
           ))}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-white mt-16 py-8 border-t border-gray-200">
+      <footer className={`${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-200 text-gray-600'} mt-16 py-8 border-t`}>
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center">
@@ -922,9 +955,9 @@ function App() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
               </svg>
             </div>
-            <span className="font-bold text-gray-700">Image Converter</span>
+            <span className={`font-bold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>Image Converter</span>
           </div>
-          <p className="text-gray-600">© {new Date().getFullYear()} All rights reserved.</p>
+          <p>© {new Date().getFullYear()} All rights reserved.</p>
         </div>
       </footer>
 
