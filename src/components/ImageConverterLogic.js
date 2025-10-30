@@ -386,8 +386,5 @@ export const useImageConverter = () => {
     openEdit,
     closeEdit,
     saveEdit,
-    setIsToolsOpen,
-    handleFileChange,
-    setEditData,
   };
 };
