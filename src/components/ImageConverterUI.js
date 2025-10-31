@@ -405,7 +405,7 @@ export const ImageConverterUI = ({
 									className="text-indigo-200 hover:text-white transition-colors font-medium px-3 py-1 rounded"
 									title={t.name}
 								>
-									{t.short}
+									{t.name}
 								</button>
 							))}
 						</div>
