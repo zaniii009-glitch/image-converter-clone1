@@ -1,6 +1,9 @@
+// src/pages/ColorPicker.jsx
 import React, { useState, useRef, useEffect } from 'react';
 
-export const ColorPicker = () => {
+// ✅ پروپس شامل کیے گئے: darkMode, setDarkMode
+const ColorPicker = ({ darkMode = true, setDarkMode }) => {
+  // آپ کا پورا موجودہ سٹیٹ اور فنکشنز یہیں ہیں — کوئی تبدیلی نہیں
   const [selectedColor, setSelectedColor] = useState({ hex: '#2596be', r: 37, g: 150, b: 190 });
   const [imageSrc, setImageSrc] = useState(null);
   const [images, setImages] = useState([]);
@@ -10,12 +13,12 @@ export const ColorPicker = () => {
   const [dragCounter, setDragCounter] = useState(0);
   const [activeTab, setActiveTab] = useState('image');
   const [hueValue, setHueValue] = useState(195);
-  const hueRef = useRef(hueValue);             // keep latest hue for event handlers
-  const rafRef = useRef(null);                 // requestAnimationFrame handle
-  const draggingRef = useRef(false);          // whether user is dragging the square
+  const hueRef = useRef(hueValue);
+  const rafRef = useRef(null);
+  const draggingRef = useRef(false);
   const moveHandlerRef = useRef(null);
   const upHandlerRef = useRef(null);
-  const indicatorRef = useRef(null);         // direct ref to the small circle indicator
+  const indicatorRef = useRef(null);
   const [satValue, setSatValue] = useState(67);
   const [lightValue, setLightValue] = useState(45);
   const satRef = useRef(satValue);
@@ -33,7 +36,6 @@ export const ColorPicker = () => {
     }
   }, []);
 
-  // keep hueRef in sync
   useEffect(() => {
     hueRef.current = hueValue;
   }, [hueValue]);
@@ -101,7 +103,6 @@ export const ColorPicker = () => {
         
         setTimeout(() => {
           const canvas = canvasRef.current;
-          
           if (!canvas) {
             console.error('Canvas not found');
             return;
@@ -220,7 +221,6 @@ export const ColorPicker = () => {
     setSelectedColor({ hex, r, g, b });
     
     if (!fromPicker) {
-      // Convert RGB to HSV for color picker
       const rNorm = r / 255;
       const gNorm = g / 255;
       const bNorm = b / 255;
@@ -306,7 +306,6 @@ export const ColorPicker = () => {
     };
   };
 
-  // Convert HSV (Hue 0-360, Saturation 0-100, Value 0-100) to RGB 0-255
   const hsvToRgb = (h, s, v) => {
     s /= 100;
     v /= 100;
@@ -431,11 +430,9 @@ export const ColorPicker = () => {
     const x = Math.max(0, Math.min(rawX, rect.width));
     const y = Math.max(0, Math.min(rawY, rect.height));
 
-    // More stable values (rounded)
     const saturation = Math.round(((x / rect.width) * 100) * 100) / 100;
     const value = Math.round(((1 - (y / rect.height)) * 100) * 100) / 100;
 
-    // immediate visual feedback via DOM (avoid waiting for React re-render)
     const indicator = indicatorRef.current;
     if (indicator) {
       indicator.style.left = `${saturation}%`;
@@ -445,11 +442,9 @@ export const ColorPicker = () => {
       indicator.style.border = value > 60 ? '2px solid rgba(0,0,0,0.6)' : '2px solid rgba(255,255,255,0.9)';
     }
 
-    // update refs (fast local copy)
     satRef.current = saturation;
     lightRef.current = value;
 
-    // Throttle React state updates / color computation via RAF
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
       setSatValue(satRef.current);
@@ -465,18 +460,14 @@ export const ColorPicker = () => {
     const el = colorSquareRef.current;
     if (!el) return;
 
-    // mark dragging
     draggingRef.current = true;
 
-    // Try pointer capture on the element (best-effort)
     if (el.setPointerCapture) {
       try { el.setPointerCapture(e.pointerId); } catch {}
     }
 
-    // initial update
     handleColorPointer(e.clientX, e.clientY);
 
-    // handlers attached to the element (pointer capture ensures events continue)
     moveHandlerRef.current = (ev) => {
       if (!draggingRef.current) return;
       handleColorPointer(ev.clientX, ev.clientY);
@@ -484,14 +475,11 @@ export const ColorPicker = () => {
 
     upHandlerRef.current = (ev) => {
       draggingRef.current = false;
-      // try to release capture (use the up event pointerId if available)
       try { if (el.releasePointerCapture) el.releasePointerCapture(ev.pointerId ?? e.pointerId); } catch {}
-      // cancel pending RAF if any
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
-      // remove listeners from element
       try {
         el.removeEventListener('pointermove', moveHandlerRef.current);
         el.removeEventListener('pointerup', upHandlerRef.current);
@@ -506,7 +494,6 @@ export const ColorPicker = () => {
     el.addEventListener('pointercancel', upHandlerRef.current);
   };
  
-  // cleanup on unmount: remove any attached listeners and cancel RAF
   useEffect(() => {
     return () => {
       const el = colorSquareRef.current;
@@ -537,7 +524,6 @@ export const ColorPicker = () => {
     };
   }, []);
 
-  // Redraw canvas when switching back to image tab
   useEffect(() => {
     if (activeTab === 'image' && imageSrc && imageRef.current) {
       setTimeout(() => {
@@ -584,7 +570,6 @@ export const ColorPicker = () => {
         updateSelectedColor(r, g, b);
       }
     } catch (error) {
-      // User cancelled or error occurred
       if (error.name !== 'AbortError') {
         console.error('EyeDropper error:', error);
       }
@@ -597,8 +582,12 @@ export const ColorPicker = () => {
   const hsl = rgbToHsl(selectedColor.r, selectedColor.g, selectedColor.b);
   const variations = getColorVariations();
 
+  // ✅ ڈارک موڈ کے لیے بیک گراؤنڈ کا فیصلہ
+  const bgColor = darkMode ? 'bg-gray-900' : 'bg-gray-50';
+  const textColor = darkMode ? 'text-white' : 'text-gray-900';
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className={`min-h-screen ${bgColor} ${textColor}`}>
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <header className="mb-8">
@@ -620,28 +609,28 @@ export const ColorPicker = () => {
         </header>
 
         {/* Tabs */}
-<div className="flex justify-center gap-8 mb-8 border-b border-gray-700">
-  <button
-    onClick={() => setActiveTab('image')}
-    className={`pb-3 px-4 font-medium transition-all ${
-      activeTab === 'image'
-        ? 'text-white border-b-2 border-cyan-500'
-        : 'text-gray-400 hover:text-gray-300'
-    }`}
-  >
-    Pick color from image
-  </button>
-  <button
-    onClick={() => setActiveTab('picker')}
-    className={`pb-3 px-4 font-medium transition-all ${
-      activeTab === 'picker'
-        ? 'text-white border-b-2 border-cyan-500'
-        : 'text-gray-400 hover:text-gray-300'
-    }`}
-  >
-    Color Picker
-  </button>
-</div>
+        <div className="flex justify-center gap-8 mb-8 border-b border-gray-700">
+          <button
+            onClick={() => setActiveTab('image')}
+            className={`pb-3 px-4 font-medium transition-all ${
+              activeTab === 'image'
+                ? 'text-white border-b-2 border-cyan-500'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            Pick color from image
+          </button>
+          <button
+            onClick={() => setActiveTab('picker')}
+            className={`pb-3 px-4 font-medium transition-all ${
+              activeTab === 'picker'
+                ? 'text-white border-b-2 border-cyan-500'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            Color Picker
+          </button>
+        </div>
 
         {/* Tab Content */}
         {activeTab === 'image' && (
@@ -680,7 +669,6 @@ export const ColorPicker = () => {
                 </div>
               ) : (
                 <div>
-                  {/* Image Thumbnails */}
                   {images.length > 1 && (
                     <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                       {images.map((img, index) => (
@@ -711,7 +699,6 @@ export const ColorPicker = () => {
                     </div>
                   )}
                   
-                  {/* Main Canvas */}
                   <div className="relative">
                     {imageSrc && (
                       <canvas
@@ -732,7 +719,6 @@ export const ColorPicker = () => {
                     )}
                   </div>
                   
-                  {/* Image Info */}
                   {images.length > 0 && (
                     <div className="mt-3 text-sm text-gray-400">
                       {images[currentImageIndex]?.name} ({currentImageIndex + 1} of {images.length})
@@ -801,17 +787,15 @@ export const ColorPicker = () => {
         {activeTab === 'picker' && (
           <div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              {/* Color Conversion Section */}
               <div className="bg-gray-800 rounded-xl p-6">
                 <h3 className="text-xl font-bold mb-4">Color Conversion</h3>
                 
-                {/* Color Square */}
                 <div 
                   ref={colorSquareRef}
                   className="relative w-full aspect-square bg-white rounded-lg mb-4 cursor-crosshair select-none"
                   style={{
                     background: `linear-gradient(to bottom, transparent, black), linear-gradient(to right, white, hsl(${hueValue}, 100%, 50%))`,
-                    touchAction: 'none' // prevent browser gestures from interrupting pointer events
+                    touchAction: 'none'
                   }}
                   onPointerDown={onPointerDown}
                  >
@@ -829,7 +813,6 @@ export const ColorPicker = () => {
                    />
                   </div>
 
-                {/* Hue Slider */}
                 <div className="mb-4">
                   <input
                     type="range"
@@ -844,7 +827,6 @@ export const ColorPicker = () => {
                   />
                 </div>
 
-                {/* HEX Input */}
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-gray-400">HEX</span>
                   <input
@@ -881,7 +863,6 @@ export const ColorPicker = () => {
                 </button>
               </div>
 
-              {/* Color Codes Display */}
               <div className="space-y-4">
                 <div 
                   className="rounded-xl p-8 text-center transition-colors duration-300" 
@@ -927,7 +908,6 @@ export const ColorPicker = () => {
               </div>
             </div>
 
-            {/* Variations Section */}
             <div className="bg-gray-800 rounded-xl p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded" style={{ backgroundColor: selectedColor.hex }}></div>
@@ -945,7 +925,6 @@ export const ColorPicker = () => {
                 </p>
               </div>
 
-              {/* Shades */}
               <div className="mb-8">
                 <h3 className="text-xl font-bold mb-4">Shades</h3>
                 <p className="text-gray-400 mb-4">Darker variations created by adding black to your base color.</p>
@@ -973,7 +952,6 @@ export const ColorPicker = () => {
                 </div>
               </div>
 
-              {/* Tints */}
               <div>
                 <h3 className="text-xl font-bold mb-4">Tints</h3>
                 <p className="text-gray-400 mb-4">Lighter variations created by adding white to your base color.</p>
@@ -1007,3 +985,6 @@ export const ColorPicker = () => {
     </div>
   );
 };
+
+// ✅ ڈیفالٹ ایکسپورٹ — React.lazy کے لیے ضروری
+export default ColorPicker;

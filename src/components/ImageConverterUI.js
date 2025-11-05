@@ -1,5 +1,6 @@
 // src/components/ImageConverterUI.js
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // ✅ یہ ایڈ کریں
 
 export const ImageConverterUI = ({
 	// State
@@ -39,318 +40,19 @@ export const ImageConverterUI = ({
 	handleFileChange,
 	setEditData,
 }) => {
-	// --- Image crop modal state ---
-	const [showCropModal, setShowCropModal] = useState(false);
-	const [cropImageSrc, setCropImageSrc] = useState(null);
-	const [rotation, setRotation] = useState(0); // 0 | 90 | 180 | 270
-	const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
-	// interactive crop box (display pixels) while modal open
-	// cropBox: { x, y, size } in displayed pixels relative to the modal's preview container
-	const [cropBox, setCropBox] = useState({ x: 0, y: 0, size: 0 });
-	// displayed image rectangle relative to the preview container (left/top inside parent)
-	const [imgDisplay, setImgDisplay] = useState({ left: 0, top: 0, width: 0, height: 0 });
-	const dragState = useRef(null); // { mode: 'move' | 'resize', corner, startX, startY, startBox }
-	const imgRef = useRef(null);
-	const tempObjectUrlRef = useRef(null);
-	// DOM ref to displayed image for click mapping
-	const previewRef = useRef(null);
-	const mouseMoveHandlerRef = useRef(null);
-	const mouseUpHandlerRef = useRef(null);
-
-	// Open crop modal for first selected file
-	const openCropModalForSelected = () => {
-		if (!selectedFiles || selectedFiles.length === 0) {
-			alert('Please select an image first.');
-			return;
-		}
-		const file = selectedFiles[0].file;
-		const url = file.preview || URL.createObjectURL(file);
-		tempObjectUrlRef.current = url;
-		setCropImageSrc(url);
-		setShowCropModal(true);
-		setRotation(0);
-		setImgNatural({ w: 0, h: 0 });
-		// no fixed percent UI — crop box will be initialized on image load
-	};
-
-	const closeCropModal = () => {
-		setShowCropModal(false);
-		// revoke temporary object url if we created one
-		if (tempObjectUrlRef.current) {
-			try { URL.revokeObjectURL(tempObjectUrlRef.current); } catch (e) {}
-			tempObjectUrlRef.current = null;
-		}
-		setCropImageSrc(null);
-	};
-
-	const onCropImageLoad = (e) => {
-		const w = e.target.naturalWidth;
-		const h = e.target.naturalHeight;
-		setImgNatural({ w, h });
-		// initialize displayed crop box centered inside preview
-		requestAnimationFrame(() => {
-			if (!previewRef.current) return;
-			const imgRect = previewRef.current.getBoundingClientRect();
-			const parentRect = previewRef.current.parentElement.getBoundingClientRect();
-			// image position relative to the parent container
-			const left = Math.round(imgRect.left - parentRect.left);
-			const top = Math.round(imgRect.top - parentRect.top);
-			const dispW = imgRect.width;
-			const dispH = imgRect.height;
-			setImgDisplay({ left, top, width: dispW, height: dispH });
-			// initialize crop box centered over the displayed image area
-			const side = Math.round(Math.min(dispW, dispH) * 0.9); // 90% of smaller side
-			const x = left + Math.round((dispW - side) / 2);
-			const y = top + Math.round((dispH - side) / 2);
-			setCropBox({ x, y, size: side });
-		});
-	};
-
-	const rotateLeft = () => setRotation((r) => (r + 270) % 360);
-	const rotateRight = () => setRotation((r) => (r + 90) % 360);
-
-	const cropCenterSquare = () => {
-		// center cropBox to full preview square (max) relative to the displayed image area
-		if (!previewRef.current) return;
-		const d = imgDisplay.width && imgDisplay.height ? imgDisplay : (() => {
-			const rect = previewRef.current.getBoundingClientRect();
-			const parentRect = previewRef.current.parentElement.getBoundingClientRect();
-			return { left: Math.round(rect.left - parentRect.left), top: Math.round(rect.top - parentRect.top), width: rect.width, height: rect.height };
-		})();
-		const side = Math.min(d.width, d.height);
-		const x = d.left + Math.round((d.width - side) / 2);
-		const y = d.top + Math.round((d.height - side) / 2);
-		setCropBox({ x: Math.round(x), y: Math.round(y), size: Math.round(side) });
-	};
- 
- 	// Drag / resize handlers for interactive crop box (display coords)
- 	const startDrag = (mode, e, corner) => {
-		if (!previewRef.current) return;
-		e.preventDefault();
-		const imgRect = previewRef.current.getBoundingClientRect();
-		const parentRect = previewRef.current.parentElement.getBoundingClientRect();
-		// rect relative to parent (same coordinate space as cropBox.x/cropBox.y)
-		const rect = {
-			left: Math.round(imgRect.left - parentRect.left),
-			top: Math.round(imgRect.top - parentRect.top),
-			width: Math.round(imgRect.width),
-			height: Math.round(imgRect.height)
-		};
-		const clientX = (e.touches ? e.touches[0].clientX : e.clientX);
-		const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
-		dragState.current = {
-			mode,
-			corner,
-			startX: clientX,
-			startY: clientY,
-			startBox: { ...cropBox },
-			rect
-		};
-
- 		const onMove = (ev) => {
- 			if (!dragState.current) return;
- 			const mx = (ev.touches ? ev.touches[0].clientX : ev.clientX);
- 			const my = (ev.touches ? ev.touches[0].clientY : ev.clientY);
- 			const dx = mx - dragState.current.startX;
- 			const dy = my - dragState.current.startY;
- 			const { startBox, rect } = dragState.current;
- 
- 			if (dragState.current.mode === 'move') {
- 				// move box, clamp to preview bounds
- 				let nx = Math.round(startBox.x + dx);
- 				let ny = Math.round(startBox.y + dy);
- 				const minX = rect.left;
- 				const minY = rect.top;
- 				const maxX = rect.left + rect.width - startBox.size;
- 				const maxY = rect.top + rect.height - startBox.size;
- 				nx = Math.max(minX, Math.min(nx, maxX));
- 				ny = Math.max(minY, Math.min(ny, maxY));
- 				setCropBox((b) => ({ ...b, x: nx, y: ny }));
- 			} else if (dragState.current.mode === 'resize') {
-				// resize while keeping a square.
-				const corner = dragState.current.corner; // 'tl','tr','bl','br' or 'tm','bm','lm','rm'
-				let newSize = startBox.size;
-				let newX = startBox.x;
-				let newY = startBox.y;
- 
-				// Edge handles (midpoints): top-middle ('tm'), bottom-middle ('bm'), left-middle ('lm'), right-middle ('rm')
-				if (corner === 'tm' || corner === 'bm') {
-					// vertical edge: use vertical movement
-					const delta = (corner === 'bm') ? dy : -dy;
-					newSize = Math.round(Math.max(20, startBox.size + delta));
-					// keep a fixed opposite edge (bm fixes top, tm fixes bottom) by computing newY
-					if (corner === 'tm') {
-						const bottom = startBox.y + startBox.size;
-						newY = Math.round(bottom - newSize);
-						// keep horizontal center aligned to visually resize uniformly
-						newX = Math.round(startBox.x + (startBox.size - newSize) / 2);
-					} else {
-						// 'bm' - top fixed
-						newY = startBox.y;
-						newX = Math.round(startBox.x + (startBox.size - newSize) / 2);
-					}
-				} else if (corner === 'lm' || corner === 'rm') {
-					// horizontal edge: use horizontal movement
-					const delta = (corner === 'rm') ? dx : -dx;
-					newSize = Math.round(Math.max(20, startBox.size + delta));
-					if (corner === 'lm') {
-						const right = startBox.x + startBox.size;
-						newX = Math.round(right - newSize);
-						newY = Math.round(startBox.y + (startBox.size - newSize) / 2);
-					} else {
-						// 'rm' - left fixed
-						newX = startBox.x;
-						newY = Math.round(startBox.y + (startBox.size - newSize) / 2);
-					}
-				} else {
-					// corner handles: use largest movement axis to preserve intuitive drag
-					const delta = Math.max(dx * (corner.includes('r') ? 1 : -1), dy * (corner.includes('b') ? 1 : -1));
-					newSize = Math.round(Math.max(20, startBox.size + delta));
-					if (corner.includes('l')) newX = Math.round(startBox.x - (newSize - startBox.size));
-					if (corner.includes('t')) newY = Math.round(startBox.y - (newSize - startBox.size));
-				}
- 
-				// clamp to image rect area (rect.left/top are offsets)
-				if (newX < rect.left) { const diff = rect.left - newX; newX = rect.left; newSize = Math.round(newSize - diff); }
-				if (newY < rect.top) { const diff = rect.top - newY; newY = rect.top; newSize = Math.round(newSize - diff); }
-				if (newX + newSize > rect.left + rect.width) newSize = Math.round(rect.left + rect.width - newX);
-				if (newY + newSize > rect.top + rect.height) newSize = Math.round(rect.top + rect.height - newY);
-				newSize = Math.max(20, newSize);
-				// Adjust newX/newY if rounding changed size to keep within bounds
-				if (newX + newSize > rect.left + rect.width) newX = rect.left + rect.width - newSize;
-				if (newY + newSize > rect.top + rect.height) newY = rect.top + rect.height - newSize;
- 
-				setCropBox({ x: Math.round(newX), y: Math.round(newY), size: Math.round(newSize) });
- 			}
- 		};
- 
- 		const onUp = () => {
- 			dragState.current = null;
- 			window.removeEventListener('mousemove', mouseMoveHandlerRef.current);
- 			window.removeEventListener('touchmove', mouseMoveHandlerRef.current);
- 			window.removeEventListener('mouseup', mouseUpHandlerRef.current);
- 			window.removeEventListener('touchend', mouseUpHandlerRef.current);
- 		};
- 
- 		mouseMoveHandlerRef.current = onMove;
- 		mouseUpHandlerRef.current = onUp;
- 		window.addEventListener('mousemove', onMove);
- 		window.addEventListener('touchmove', onMove, { passive: false });
- 		window.addEventListener('mouseup', onUp);
- 		window.addEventListener('touchend', onUp);
- 	};
- 
- 	// Apply crop + rotation and trigger download (does not alter app state)
- 	const applyCropAndDownload = async () => {
- 		if (!cropImageSrc || imgNatural.w === 0 || !previewRef.current) return;
- 		const img = new Image();
- 		img.src = cropImageSrc;
- 		await new Promise((res) => (img.onload = res));
- 
- 		// draw rotated image to temp canvas (for final orientation)
- 		let tempW = img.naturalWidth;
- 		let tempH = img.naturalHeight;
- 		if (rotation === 90 || rotation === 270) {
- 			tempW = img.naturalHeight;
- 			tempH = img.naturalWidth;
- 		}
- 		const tempCanvas = document.createElement('canvas');
- 		tempCanvas.width = tempW;
- 		tempCanvas.height = tempH;
- 		const tctx = tempCanvas.getContext('2d');
- 
- 		// apply rotation transform when drawing
- 		if (rotation === 0) {
- 			tctx.drawImage(img, 0, 0);
- 		} else if (rotation === 90) {
- 			tctx.translate(tempW, 0);
- 			tctx.rotate(Math.PI / 2);
- 			tctx.drawImage(img, 0, 0);
- 		} else if (rotation === 180) {
- 			tctx.translate(tempW, tempH);
- 			tctx.rotate(Math.PI);
- 			tctx.drawImage(img, 0, 0);
- 		} else if (rotation === 270) {
- 			tctx.translate(0, tempH);
- 			tctx.rotate((3 * Math.PI) / 2);
- 			tctx.drawImage(img, 0, 0);
- 		}
- 
- 		// map displayed cropBox -> natural pixel coordinates (on original image)
- 		const rect = previewRef.current.getBoundingClientRect();
- 		const parentRect = previewRef.current.parentElement.getBoundingClientRect();
- 		const dispW = rect.width;
- 		const dispH = rect.height;
- 		// scale factors between displayed and natural
- 		const scaleX = imgNatural.w / dispW;
- 		const scaleY = imgNatural.h / dispH;
- 		// convert displayed crop box (subtract image-left/top) to original natural coords
- 		const imageLeft = Math.round(rect.left - parentRect.left);
- 		const imageTop = Math.round(rect.top - parentRect.top);
- 		const sxNatural = Math.round((cropBox.x - imageLeft) * scaleX);
- 		const syNatural = Math.round((cropBox.y - imageTop) * scaleY);
- 		const swNatural = Math.round(cropBox.size * scaleX);
- 		const shNatural = Math.round(cropBox.size * scaleY);
- 
- 		// Because we drew the image into tempCanvas possibly rotated,
- 		// we must map the natural crop rectangle into the rotated temp canvas coords.
- 		// rcx/rcy are the center in original natural coords:
- 		const centerX = sxNatural + Math.round(swNatural / 2);
- 		const centerY = syNatural + Math.round(shNatural / 2);
- 		let rcx = centerX;
- 		let rcy = centerY;
- 		const ow = imgNatural.w;
- 		const oh = imgNatural.h;
- 		if (rotation === 0) {
- 			rcx = centerX; rcy = centerY;
- 		} else if (rotation === 90) {
- 			rcx = oh - centerY; rcy = centerX;
- 		} else if (rotation === 180) {
- 			rcx = ow - centerX; rcy = oh - centerY;
- 		} else if (rotation === 270) {
- 			rcx = centerY; rcy = ow - centerX;
- 		}
- 		const sx = Math.max(0, Math.round(rcx - (swNatural / 2)));
- 		const sy = Math.max(0, Math.round(rcy - (shNatural / 2)));
- 		const sw = Math.min(swNatural, tempCanvas.width - sx);
- 		const sh = Math.min(shNatural, tempCanvas.height - sy);
- 
- 		// final output canvas
- 		const outCanvas = document.createElement('canvas');
- 		outCanvas.width = sw;
- 		outCanvas.height = sh;
- 		const octx = outCanvas.getContext('2d');
- 		octx.drawImage(tempCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
- 
- 		outCanvas.toBlob((blob) => {
- 			if (!blob) {
- 				alert('Failed to create image.');
- 				return;
- 			}
- 			const a = document.createElement('a');
- 			const fileName = (selectedFiles && selectedFiles[0] && selectedFiles[0].file && selectedFiles[0].file.name) ? selectedFiles[0].file.name.replace(/\.[^.]+$/, '') + '_crop.png' : 'image_crop.png';
- 			const url = URL.createObjectURL(blob);
- 			a.href = url;
- 			a.download = fileName;
- 			document.body.appendChild(a);
- 			a.click();
- 			a.remove();
- 			URL.revokeObjectURL(url);
- 			// close modal after download
- 			closeCropModal();
- 		}, 'image/png');
- 	};
-	// --- end crop modal logic ---
+	// ✅ useNavigate ہک شامل کریں
+	const navigate = useNavigate();
 
 	// quick list of tools to show in header (kept in sync with Valuable Tools)
 	const headerTools = [
-		{ name: 'Image Resizer', link: '#', short: 'Resize' },
-		{ name: 'Crop Image', link: '#', short: 'Crop' },
-		{ name: 'Image Compressor', link: '#', short: 'Compress' },
-		{ name: 'Color Picker', link: '/color-picker', short: 'Color Picker' },
-		{ name: 'Image Enlarger', link: '#', short: 'Enlarge' },
-		{ name: 'Collage Maker', link: '#', short: 'Collage' }
-	];
+  { name: 'Image Resizer', link: '/image-resizer', short: 'Resize' },
+  { name: 'Crop Image', link: '/crop-image', short: 'Crop' },
+  { name: 'Image Compressor', link: '/image-compressor', short: 'Compress' },
+  { name: 'Color Picker', link: '/color-picker', short: 'Color Picker' },
+//   { name: 'Image Enlarger', link: '/image-enlarger', short: 'Enlarge' },
+  { name: 'Collage Maker', link: '/collage-maker', short: 'Collage' },
+  { name: 'Rotate Image', link: '/rotate-image', short: 'Rotate' } // ← نیا بٹن
+];
 
 	return (
 		<>
@@ -391,16 +93,12 @@ export const ImageConverterUI = ({
 						
 						{/* header quick-tool buttons (md+) */}
 						<div className="hidden md:flex items-center gap-3">
-							{headerTools.slice(0, 5).map((t) => (
+							{headerTools.slice(0, 6).map((t) => (
 								<button
 									key={t.name}
-									onClick={() => {
-										// Crop should open modal instead of navigating
-										if (t.name === 'Crop Image') {
-											openCropModalForSelected();
-										} else {
-											window.location.href = t.link;
-										}
+									onClick={(e) => {
+										e.preventDefault();
+										navigate(t.link); // ✅ SPA نیویگیشن
 									}}
 									className="text-indigo-200 hover:text-white transition-colors font-medium px-3 py-1 rounded"
 									title={t.name}
@@ -780,7 +478,7 @@ export const ImageConverterUI = ({
 				)}
 
 				{/* How to Convert */}
-				<section className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm p-8 mb-8`}>
+				<section className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm p-8 mb-6`}>
 					<h2 className={`text-2xl font-bold mb-6 flex items-center gap-3 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}><span className="text-2xl">❓</span> How to Convert Images?</h2>
 					<div className="space-y-4">
 						<div className={`flex items-start gap-4 p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
@@ -802,42 +500,46 @@ export const ImageConverterUI = ({
 				<section className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm p-8 mb-8`}>
 					<button className="w-full flex items-center justify-between text-left group" onClick={() => setIsToolsOpen(!isToolsOpen)}>
 						<h2 className={`text-2xl font-bold flex items-center gap-3 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}><span className="text-2xl">🛠️</span> Valuable Image Tools</h2>
-						<svg className={`w-6 h-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'} transition-transform duration-300 ${isToolsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+						<svg className={`w-6 h-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'} transition-transform duration-300 ${isToolsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+						</svg>
 					</button>
 
 					<div className="transition-all duration-500 ease-in-out overflow-hidden" style={{ maxHeight: isToolsOpen ? '1000px' : '0', opacity: isToolsOpen ? 1 : 0 }}>
 						<p className={`mt-4 mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Here is a list of image tools to further edit your images.</p>
 						<div className="space-y-3">
 							{[
-								{ name: 'Image Resizer', desc: 'Quick and easy way to resize an image to any size' },
-								{ name: 'Crop Image', desc: 'Use this tool to crop unwanted areas from your image' },
-								{ name: 'Image Compressor', desc: 'Reduce image files size by up to 80 to 90% using this tool' },
+								{ name: 'Image Resizer', desc: 'Quick and easy way to resize an image to any size', link: '/image-resizer' },
+								{ name: 'Crop Image', desc: 'Use this tool to crop unwanted areas from your image', link: '/crop-image' },
+								{ name: 'Image Compressor', desc: 'Reduce image files size by up to 80 to 90% using this tool', link: '/image-compressor' },
 								{ name: 'Color Picker', desc: 'Pick any color from a visual palette', link: '/color-picker' },
-								{ name: 'Image Enlarger', desc: 'A fast way to make your images bigger' },
-								{ name: 'Collage Maker', desc: 'Create a beautiful photo collage from your photos' }
+								{ name: 'Image Enlarger', desc: 'A fast way to make your images bigger', link: '/image-enlarger' },
+								{ name: 'Collage Maker', desc: 'Create a beautiful photo collage from your photos', link: '/collage-maker' }
 							].map((tool, index) => (
-								<div key={tool.name} className={`flex items-start gap-3 p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg hover:${darkMode ? 'bg-gray-600' : 'bg-gray-100'} transition-all duration-300 cursor-pointer`} onClick={() => tool.link ? (window.location.href = tool.link) : null}>
-									<span className="flex-shrink-0 w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-sm">{index + 1}</span>
+								<div
+									key={tool.name}
+									className={`flex items-start gap-3 p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg hover:${darkMode ? 'bg-gray-600' : 'bg-gray-100'} transition-all duration-300 cursor-pointer`}
+									onClick={(e) => {
+										e.stopPropagation(); // روکیں کہ dropdown بند نہ ہو
+										if (tool.link) {
+											navigate(tool.link); // ✅ SPA نیویگیشن
+										}
+									}}
+								>
+									<span className="flex-shrink-0 w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-sm">
+										{index + 1}
+									</span>
 									<div>
-										<span className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">{tool.name}</span>
-										<span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}> - {tool.desc}</span>
+										<span className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">
+											{tool.name}
+										</span>
+										<span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+											{' - ' + tool.desc}
+										</span>
 									</div>
 								</div>
 							))}
 						</div>
-					</div>
-				</section>
-
-				{/* IMAGE CONVERTERS */}
-				<section className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm p-8 mb-8`}>
-					<div className="flex items-center gap-3 mb-6">
-						<svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-						<h2 className={`text-2xl font-bold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>IMAGE CONVERTERS</h2>
-					</div>
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-3">
-						<div className="space-y-3">{['3FR Converter', 'ARW Converter', 'AVIF Converter', 'BMP Converter', 'CR2 Converter', 'CR3 Converter', 'CRW Converter', 'DCR Converter', 'DNG Converter', 'EPS Converter', 'ERF Converter', 'GIF Converter', 'HEIC Converter', 'HEIF Converter'].map((c) => (<a key={c} href="#" className={`block ${darkMode ? 'text-indigo-400 hover:text-teal-400' : 'text-indigo-600 hover:text-teal-600'} hover:underline transition-colors duration-200`}>{c}</a>))}</div>
-						<div className="space-y-3">{['ICNS Converter', 'ICO Converter', 'JFIF Converter', 'JPEG Converter', 'JPG Converter', 'MOS Converter', 'MRW Converter', 'NEF Converter', 'ODD Converter', 'ODG Converter', 'ORF Converter', 'PEF Converter', 'PNG Converter', 'PPM Converter'].map((c) => (<a key={c} href="#" className={`block ${darkMode ? 'text-indigo-400 hover:text-teal-400' : 'text-indigo-600 hover:text-teal-600'} hover:underline transition-colors duration-200`}>{c}</a>))}</div>
-						<div className="space-y-3">{['PS Converter', 'PSD Converter', 'PUB Converter', 'RAF Converter', 'RAW Converter', 'RW2 Converter', 'TIF Converter', 'TIFF Converter', 'WEBP Converter', 'X3F Converter', 'XCF Converter', 'XPS Converter'].map((c) => (<a key={c} href="#" className={`block ${darkMode ? 'text-indigo-400 hover:text-teal-400' : 'text-indigo-600 hover:text-teal-600'} hover:underline transition-colors duration-200`}>{c}</a>))}</div>
 					</div>
 				</section>
 
@@ -873,147 +575,6 @@ export const ImageConverterUI = ({
 
 				{/* Hidden File Input */}
 				<input id="fileInput" type="file" accept="image/*" onChange={handleFileChange} className="hidden" multiple />
-
-				{/* Crop Modal */}
-				{showCropModal && (
-					<div className="fixed inset-0 z-70 flex items-center justify-center">
-						<div className="absolute inset-0 bg-black opacity-50" onClick={closeCropModal} />
-						<div className="relative bg-white rounded-lg shadow-xl w-11/12 max-w-3xl p-6 z-80">
-							<div className="flex items-center justify-between mb-4">
-								<h3 className="text-lg font-semibold">Image Crop & Rotate</h3>
-								<button onClick={closeCropModal} className="text-gray-600 hover:text-gray-800 text-2xl">&times;</button>
-							</div>
-
-							<div className="flex flex-col md:flex-row gap-4">
-								{/* Preview */}
-								<div className="flex-1 relative flex items-center justify-center bg-gray-100 rounded p-2">
-									{cropImageSrc ? (
-										<img
-											ref={previewRef}
-											src={cropImageSrc}
-											alt="Crop preview"
-											onLoad={onCropImageLoad}
-											// interactive crop uses displayed coordinates; do not visually rotate preview
-											style={{
-												maxWidth: '100%',
-												maxHeight: '60vh',
-												cursor: 'crosshair',
-												transform: 'none'
-											}}
-										/>
-									) : (
-										<div>No image</div>
-									)}
-									{/* overlay square preview (positioned based on cropCenter & cropPercent) */}
-									{previewRef.current && (
-										(() => {
-											const box = cropBox;
-											// translucent overlay outside the crop (cover entire parent area)
-											return (
-												<>
-													{/* outside overlay */}
-													<div style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
-														{/* top */}
-														<div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: `${box.y}px`, background: 'rgba(0,0,0,0.45)' }} />
-														{/* bottom */}
-														<div style={{ position: 'absolute', left: 0, top: `${box.y + box.size}px`, width: '100%', height: `calc(100% - ${box.y + box.size}px)`, background: 'rgba(0,0,0,0.45)' }} />
-														{/* left */}
-														<div style={{ position: 'absolute', left: 0, top: `${box.y}px`, width: `${box.x}px`, height: `${box.size}px`, background: 'rgba(0,0,0,0.45)' }} />
-														{/* right */}
-														<div style={{ position: 'absolute', left: `${box.x + box.size}px`, top: `${box.y}px`, width: `calc(100% - ${box.x + box.size}px)`, height: `${box.size}px`, background: 'rgba(0,0,0,0.45)' }} />
-													</div>
-
-													{/* crop box (draggable) */}
-													<div
-														onMouseDown={(ev) => startDrag('move', ev)}
-														onTouchStart={(ev) => startDrag('move', ev)}
-														style={{
-															position: 'absolute',
-															left: `${box.x}px`,
-															top: `${box.y}px`,
-															width: `${box.size}px`,
-															height: `${box.size}px`,
-															border: '2px solid #3b82f6',
-															boxSizing: 'border-box',
-															cursor: 'move',
-															background: 'transparent'
-														}}
-													/>
-
-													{/* handles: corners + mid-edges (16px squares) */}
-													{['tl','tm','tr','rm','br','bm','bl','lm'].map((c) => {
-														// compute handle center in parent coords
-														let cx = box.x;
-														let cy = box.y;
-														if (c === 'tl') { cx = box.x; cy = box.y; }
-														if (c === 'tm') { cx = box.x + box.size / 2; cy = box.y; }
-														if (c === 'tr') { cx = box.x + box.size; cy = box.y; }
-														if (c === 'rm') { cx = box.x + box.size; cy = box.y + box.size / 2; }
-														if (c === 'br') { cx = box.x + box.size; cy = box.y + box.size; }
-														if (c === 'bm') { cx = box.x + box.size / 2; cy = box.y + box.size; }
-														if (c === 'bl') { cx = box.x; cy = box.y + box.size; }
-														if (c === 'lm') { cx = box.x; cy = box.y + box.size / 2; }
-														const cursor = c === 'tm' || c === 'bm' ? 'ns-resize' : (c === 'lm' || c === 'rm' ? 'ew-resize' : ((c === 'tl' || c === 'br') ? 'nwse-resize' : 'nesw-resize'));
-														return (
-															<div
-																key={c}
-																onMouseDown={(ev) => startDrag('resize', ev, c)}
-																onTouchStart={(ev) => startDrag('resize', ev, c)}
-																style={{
-																	position: 'absolute',
-																	left: `${Math.round(cx - 8)}px`,
-																	top: `${Math.round(cy - 8)}px`,
-																	width: '16px',
-																	height: '16px',
-																	background: '#fff',
-																	border: '2px solid #3b82f6',
-																	borderRadius: '3px',
-																	boxSizing: 'border-box',
-																	cursor
-																}}
-															/>
-														);
-													})}
-												</>
-											);
-										})()
-									)}
-								</div>
- 
-								{/* Controls */}
-								<div className="w-full md:w-64 space-y-3">
-									<div className="flex items-center gap-2">
-										{/* Rotate Left: text then bold circular arrow (unicode) */}
-										<button onClick={rotateLeft} className="flex items-center gap-2 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300" title="Rotate left">
-											<span className="text-sm">Rotate Left</span>
-											<span className="text-2xl font-extrabold leading-none select-none" aria-hidden>↺</span>
-										</button>
-
-										{/* Rotate Right: text then bold circular arrow (unicode) */}
-										<button onClick={rotateRight} className="flex items-center gap-2 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300" title="Rotate right">
-											<span className="text-sm">Rotate Right</span>
-											<span className="text-2xl font-extrabold leading-none select-none" aria-hidden>↻</span>
-										</button>
-									</div>
-
-									<div className="flex gap-2">
-										<button onClick={cropCenterSquare} className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Center Square</button>
-										<button onClick={cropCenterSquare} className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">Full</button>
-									</div>
-
-									<div className="flex gap-2">
-										<button onClick={applyCropAndDownload} className="flex-1 px-3 py-2 bg-teal-600 text-white rounded hover:bg-teal-700">Crop & Download</button>
-										<button onClick={closeCropModal} className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
-									</div>
-
-									<div className="text-xs text-gray-500">
-										<p>Tip: Drag the box or use the corner handles to resize, then Crop & Download.</p>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				)}
 			</main>
  		</>
  	);
