@@ -1,9 +1,7 @@
 // src/pages/ColorPicker.jsx
 import React, { useState, useRef, useEffect } from 'react';
 
-// ✅ پروپس شامل کیے گئے: darkMode, setDarkMode
 const ColorPicker = ({ darkMode = true, setDarkMode }) => {
-  // آپ کا پورا موجودہ سٹیٹ اور فنکشنز یہیں ہیں — کوئی تبدیلی نہیں
   const [selectedColor, setSelectedColor] = useState({ hex: '#2596be', r: 37, g: 150, b: 190 });
   const [imageSrc, setImageSrc] = useState(null);
   const [images, setImages] = useState([]);
@@ -29,18 +27,30 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   const fileInputRef = useRef(null);
   const imageRef = useRef(null);
 
-  // Check if EyeDropper API is supported
   useEffect(() => {
     if ('EyeDropper' in window) {
       setIsEyeDropperSupported(true);
     }
   }, []);
 
-  useEffect(() => {
-    hueRef.current = hueValue;
-  }, [hueValue]);
+  useEffect(() => { hueRef.current = hueValue; }, [hueValue]);
   useEffect(() => { satRef.current = satValue; }, [satValue]);
   useEffect(() => { lightRef.current = lightValue; }, [lightValue]);
+
+  // Background & text classes based on darkMode
+  const bgColor = darkMode ? 'bg-gray-900' : 'bg-gray-50';
+  const textColor = darkMode ? 'text-white' : 'text-gray-900';
+  const secondaryText = darkMode ? 'text-gray-400' : 'text-gray-600';
+  const mutedText = darkMode ? 'text-gray-500' : 'text-gray-500';
+  const cardBg = darkMode ? 'bg-gray-800' : 'bg-white';
+  const inputBg = darkMode ? 'bg-gray-900' : 'bg-gray-100';
+  const border = darkMode ? 'border-gray-700' : 'border-gray-300';
+  const hoverBg = darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100';
+  const dragAreaBg = darkMode ? 'bg-gray-800' : 'bg-gray-100';
+  const dragActiveBg = darkMode ? 'bg-cyan-900/20' : 'bg-cyan-100/20';
+  const dragBorderColor = darkMode ? 'border-cyan-500' : 'border-cyan-600';
+  const iconColor = darkMode ? 'text-gray-600' : 'text-gray-400';
+  const buttonHover = darkMode ? 'hover:bg-cyan-600' : 'hover:bg-cyan-400';
 
   const generatePalette = (img) => {
     const canvas = document.createElement('canvas');
@@ -582,10 +592,6 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   const hsl = rgbToHsl(selectedColor.r, selectedColor.g, selectedColor.b);
   const variations = getColorVariations();
 
-  // ✅ ڈارک موڈ کے لیے بیک گراؤنڈ کا فیصلہ
-  const bgColor = darkMode ? 'bg-gray-900' : 'bg-gray-50';
-  const textColor = darkMode ? 'text-white' : 'text-gray-900';
-
   return (
     <div className={`min-h-screen ${bgColor} ${textColor}`}>
       <div className="max-w-7xl mx-auto p-6">
@@ -594,14 +600,14 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
           {activeTab === 'image' ? (
             <>
               <h1 className="text-5xl font-bold text-center mb-3">Image Color Picker</h1>
-              <p className="text-center text-gray-400 text-lg">
+              <p className={`text-center text-lg ${secondaryText}`}>
                 Upload your image and click anywhere to extract colors instantly. Supports multiple images.
               </p>
             </>
           ) : (
             <>
               <h1 className="text-5xl font-bold text-center mb-3">Color Picker & Generator</h1>
-              <p className="text-center text-gray-400 text-lg">
+              <p className={`text-center text-lg ${secondaryText}`}>
                 Pick colors interactively, generate variations, and get all color codes in multiple formats.
               </p>
             </>
@@ -609,28 +615,28 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
         </header>
 
         {/* Tabs */}
-        <div className="flex justify-center gap-8 mb-8 border-b border-gray-700">
-          <button
-            onClick={() => setActiveTab('image')}
-            className={`pb-3 px-4 font-medium transition-all ${
-              activeTab === 'image'
-                ? 'text-white border-b-2 border-cyan-500'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-          >
-            Pick color from image
-          </button>
-          <button
-            onClick={() => setActiveTab('picker')}
-            className={`pb-3 px-4 font-medium transition-all ${
-              activeTab === 'picker'
-                ? 'text-white border-b-2 border-cyan-500'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-          >
-            Color Picker
-          </button>
-        </div>
+          <div className={`flex justify-center gap-8 mb-8 border-b ${border}`}>
+            <button
+              onClick={() => setActiveTab('image')}
+              className={`pb-3 px-4 font-medium transition-all ${
+                activeTab === 'image'
+                  ? `${textColor} border-b-2 border-cyan-500`
+                  : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
+              }`}
+            >
+              Pick color from image
+            </button>
+            <button
+              onClick={() => setActiveTab('picker')}
+              className={`pb-3 px-4 font-medium transition-all ${
+                activeTab === 'picker'
+                  ? `${textColor} border-b-2 border-cyan-500`
+                  : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
+              }`}
+            >
+              Color Picker
+            </button>
+          </div>
 
         {/* Tab Content */}
         {activeTab === 'image' && (
@@ -641,7 +647,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                 {images.length > 0 && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors text-sm"
+                    className={`px-4 py-2 bg-cyan-500 text-white rounded-lg ${buttonHover} transition-colors text-sm`}
                   >
                     + Add More Images
                   </button>
@@ -651,7 +657,9 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
               {images.length === 0 ? (
                 <div
                   className={`border-4 border-dashed rounded-xl p-16 text-center cursor-pointer transition-all ${
-                    isDragging ? 'border-cyan-500 bg-cyan-900/20' : 'border-gray-700 bg-gray-800'
+                    isDragging 
+                      ? `${dragBorderColor} ${dragActiveBg}` 
+                      : `${border} ${dragAreaBg}`
                   }`}
                   onDrop={handleDrop}
                   onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
@@ -659,13 +667,13 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                   onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragCounter(prev => { const n = prev - 1; if (n === 0) setIsDragging(false); return n; }); }}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <svg className="w-24 h-24 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-24 h-24 mx-auto mb-4 ${iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  <p className="text-xl font-bold mb-2 text-gray-200">
+                  <p className={`text-xl font-bold mb-2 ${textColor}`}>
                     {isDragging ? 'Drop your image here!' : 'Drag & drop image(s)'}
                   </p>
-                  <p className="text-gray-400">or click to browse (multiple files supported)</p>
+                  <p className={secondaryText}>or click to browse (multiple files supported)</p>
                 </div>
               ) : (
                 <div>
@@ -678,7 +686,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                             className={`w-20 h-20 rounded-lg cursor-pointer overflow-hidden border-2 transition-all ${
                               index === currentImageIndex
                                 ? 'border-cyan-500 scale-105'
-                                : 'border-gray-700 hover:border-gray-500'
+                                : `${border} hover:${darkMode ? 'border-gray-500' : 'border-gray-400'}`
                             }`}
                           >
                             <img src={img.src} alt={img.name} className="w-full h-full object-cover" />
@@ -704,7 +712,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                       <canvas
                         ref={canvasRef}
                         onClick={handleCanvasClick}
-                        className="w-full cursor-crosshair rounded-xl border-2 border-gray-700"
+                        className={`w-full cursor-crosshair rounded-xl border-2 ${border}`}
                       />
                     )}
                     {images.length === 1 && (
@@ -720,7 +728,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                   </div>
                   
                   {images.length > 0 && (
-                    <div className="mt-3 text-sm text-gray-400">
+                    <div className={`mt-3 text-sm ${secondaryText}`}>
                       {images[currentImageIndex]?.name} ({currentImageIndex + 1} of {images.length})
                     </div>
                   )}
@@ -738,7 +746,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
 
             <div>
               <h3 className="font-semibold mb-3 text-lg">Selected Color</h3>
-              <div className="bg-gray-800 rounded-xl p-4">
+              <div className={`${cardBg} rounded-xl p-4`}>
                 <div
                   className="w-full h-40 rounded-lg mb-4"
                   style={{ backgroundColor: selectedColor.hex }}
@@ -750,11 +758,11 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                     { label: 'HSL', value: `${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%` },
                     { label: 'CMYK', value: `${cmyk.c}, ${cmyk.m}, ${cmyk.y}, ${cmyk.k}` }
                   ].map(item => (
-                    <div key={item.label} className="flex items-center justify-between bg-gray-900 rounded p-2">
-                      <span className="text-sm text-gray-400">{item.label}</span>
+                    <div key={item.label} className={`flex items-center justify-between ${inputBg} rounded p-2`}>
+                      <span className={`text-sm ${secondaryText}`}>{item.label}</span>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-sm">{item.value}</span>
-                        <button onClick={() => copyToClipboard(item.value)} className="p-1 hover:bg-gray-700 rounded">
+                        <button onClick={() => copyToClipboard(item.value)} className={`p-1 ${hoverBg} rounded`}>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
@@ -787,7 +795,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
         {activeTab === 'picker' && (
           <div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              <div className="bg-gray-800 rounded-xl p-6">
+              <div className={`${cardBg} rounded-xl p-6`}>
                 <h3 className="text-xl font-bold mb-4">Color Conversion</h3>
                 
                 <div 
@@ -828,7 +836,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                 </div>
 
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-gray-400">HEX</span>
+                  <span className={secondaryText}>HEX</span>
                   <input
                     type="text"
                     value={selectedColor.hex}
@@ -841,7 +849,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                         updateSelectedColor(r, g, b);
                       }
                     }}
-                    className="flex-1 bg-gray-900 px-3 py-2 rounded font-mono text-white"
+                    className={`flex-1 ${inputBg} px-3 py-2 rounded font-mono ${textColor}`}
                   />
                 </div>
 
@@ -849,8 +857,8 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                   onClick={handlePickFromScreen}
                   className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
                     isEyeDropperSupported 
-                      ? 'bg-white text-gray-900 hover:bg-gray-100 cursor-pointer' 
-                      : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      ? (darkMode ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800')
+                      : 'bg-gray-600 text-gray-300 cursor-not-allowed'
                   }`}
                   disabled={!isEyeDropperSupported}
                   title={!isEyeDropperSupported ? 'Not supported in your browser' : 'Click to pick color from screen'}
@@ -869,12 +877,12 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                   style={{ backgroundColor: selectedColor.hex }}
                 >
                   <h2 className="text-5xl font-bold mb-2" style={{ 
-                    color: lightValue > 50 ? '#000000' : '#ffffff' 
+                    color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff' 
                   }}>
                     {selectedColor.hex}
                   </h2>
                   <p className="text-lg" style={{ 
-                    color: lightValue > 50 ? '#000000' : '#ffffff',
+                    color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff',
                     opacity: 0.8
                   }}>
                     ≈ {lightValue > 70 ? 'Light' : lightValue > 30 ? 'Medium' : 'Dark'} Tone
@@ -892,10 +900,10 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                     { label: 'LAB', value: `${lab.l}, ${lab.a}, ${lab.b}` },
                     { label: 'HWB', value: `${Math.round(hsl.h)}, 15, 25` }
                   ].map(item => (
-                    <div key={item.label} className="bg-gray-800 rounded-lg p-4">
+                    <div key={item.label} className={`${cardBg} rounded-lg p-4`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-400">{item.label}</span>
-                        <button onClick={() => copyToClipboard(item.value)} className="p-1 hover:bg-gray-700 rounded">
+                        <span className={`text-sm ${secondaryText}`}>{item.label}</span>
+                        <button onClick={() => copyToClipboard(item.value)} className={`p-1 ${hoverBg} rounded`}>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
@@ -908,31 +916,31 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
               </div>
             </div>
 
-            <div className="bg-gray-800 rounded-xl p-8">
+            <div className={`${cardBg} rounded-xl p-8`}>
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded" style={{ backgroundColor: selectedColor.hex }}></div>
                 <h2 className="text-2xl font-bold">Variations</h2>
               </div>
 
-              <p className="text-gray-400 mb-6">
+              <p className={`mb-6 ${secondaryText}`}>
                 The purpose of this section is to accurately produce tints (pure white added) and shades
                 (pure black added) of your selected color in 10% increments.
               </p>
 
-              <div className="bg-gray-900 rounded-lg p-4 mb-6">
+              <div className={`${inputBg} rounded-lg p-4 mb-6`}>
                 <p className="text-sm">
-                  <strong>Pro Tip:</strong> Use shades for hover states and shadows, tints for highlights and backgrounds.
+                  <strong className={darkMode ? 'text-white' : 'text-gray-900'}>Pro Tip:</strong> Use shades for hover states and shadows, tints for highlights and backgrounds.
                 </p>
               </div>
 
               <div className="mb-8">
                 <h3 className="text-xl font-bold mb-4">Shades</h3>
-                <p className="text-gray-400 mb-4">Darker variations created by adding black to your base color.</p>
+                <p className={`mb-4 ${secondaryText}`}>Darker variations created by adding black to your base color.</p>
                 
                 <div className="flex gap-2 mb-2">
                   {variations.shades.map(shade => (
                     <div key={shade.percent} className="flex-1 text-center">
-                      <div className="bg-white text-gray-900 rounded px-2 py-1 text-xs font-medium mb-2">
+                      <div className={`rounded px-2 py-1 text-xs font-medium mb-2 ${darkMode ? 'bg-white text-gray-900' : 'bg-gray-900 text-white'}`}>
                         {shade.percent}%
                       </div>
                     </div>
@@ -954,12 +962,12 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
 
               <div>
                 <h3 className="text-xl font-bold mb-4">Tints</h3>
-                <p className="text-gray-400 mb-4">Lighter variations created by adding white to your base color.</p>
+                <p className={`mb-4 ${secondaryText}`}>Lighter variations created by adding white to your base color.</p>
                 
                 <div className="flex gap-2 mb-2">
                   {variations.tints.map(tint => (
                     <div key={tint.percent} className="flex-1 text-center">
-                      <div className="bg-white text-gray-900 rounded px-2 py-1 text-xs font-medium mb-2">
+                      <div className={`rounded px-2 py-1 text-xs font-medium mb-2 ${darkMode ? 'bg-white text-gray-900' : 'bg-gray-900 text-white'}`}>
                         {tint.percent}%
                       </div>
                     </div>
@@ -986,5 +994,4 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   );
 };
 
-// ✅ ڈیفالٹ ایکسپورٹ — React.lazy کے لیے ضروری
 export default ColorPicker;
