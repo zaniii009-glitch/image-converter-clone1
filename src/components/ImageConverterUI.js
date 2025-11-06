@@ -543,6 +543,37 @@ export const ImageConverterUI = ({
 					</div>
 				</section>
 
+				{/* Image Converters List */}
+				<section className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm p-8 mb-8`}>
+					<h2 className={`text-2xl font-bold flex items-center gap-3 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}><span className="text-2xl">🔄</span> IMAGE CONVERTERS</h2>
+					<div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+						{[
+							// Column 1
+							['3FR Converter', 'ARW Converter', 'AVIF Converter', 'BMP Converter', 'CR2 Converter', 'CR3 Converter', 'CRW Converter', 'DCR Converter', 'DNG Converter', 'EPS Converter', 'ERF Converter', 'GIF Converter', 'HEIC Converter', 'HEIF Converter'],
+							// Column 2
+							['ICNS Converter', 'ICO Converter', 'JFIF Converter', 'JPEG Converter', 'JPG Converter', 'MOS Converter', 'MRW Converter', 'NEF Converter', 'ODD Converter', 'ODG Converter', 'ORF Converter', 'PEF Converter', 'PNG Converter', 'PPM Converter'],
+							// Column 3
+							['PS Converter', 'PSD Converter', 'PUB Converter', 'RAF Converter', 'RAW Converter', 'RW2 Converter', 'TIF Converter', 'TIFF Converter', 'WEBP Converter', 'X3F Converter', 'XCF Converter', 'XPS Converter']
+						].map((column, colIndex) => (
+							<div key={colIndex} className="space-y-2">
+								{column.map((converterName) => {
+									// Format name extract karte hain (jaise "3FR", "ARW")
+									const format = converterName.replace(' Converter', '').toLowerCase();
+									return (
+										<button
+											key={converterName}
+											onClick={() => navigate(`/convert/${format}`)} // ✅ SPA Navigation
+											className={`block w-full text-left px-3 py-2 rounded transition-colors ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+										>
+											{converterName}
+										</button>
+									);
+								})}
+							</div>
+						))}
+					</div>
+				</section>
+
 				{/* Features */}
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 					{[

@@ -14,7 +14,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // تصویر اپ لوڈ کریں
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
@@ -39,7 +38,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
     }
   };
 
-  // کروپ باکس کو ڈریگ کرنا
   const handleMouseDown = (e) => {
     if (!containerRef.current || !imageSrc) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -62,7 +60,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
     }
   };
 
-  // ماؤس موو پر ری سائز/موو کریں
   const handleMouseMove = useCallback((e) => {
     if (!isResizing || !activeHandle || !containerRef.current || !imageSrc) return;
 
@@ -169,7 +166,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
         break;
     }
 
-    // باکس کو تصویر کے اندر رکھیں
     newCrop.x = Math.max(0, newCrop.x);
     newCrop.y = Math.max(0, newCrop.y);
     newCrop.width = Math.min(newCrop.width, imgWidth - newCrop.x);
@@ -194,7 +190,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
-  // Width/Height تبدیل کریں — aspect ratio lock کے ساتھ
   const updateCropSize = (newWidth, newHeight) => {
     let updatedWidth = newWidth;
     let updatedHeight = newHeight;
@@ -215,7 +210,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
       }
     }
 
-    // حدود چیک کریں
     const img = imageRef.current;
     if (img) {
       updatedWidth = Math.min(updatedWidth, img.width - crop.x);
@@ -229,7 +223,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
     }));
   };
 
-  // Position X/Y تبدیل کریں
   const updateCropPosition = (newX, newY) => {
     const img = imageRef.current;
     if (!img) return;
@@ -244,7 +237,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
     }));
   };
 
-  // کروپ کریں
   const handleCrop = () => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -270,7 +262,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
     setCroppedImage(canvas.toDataURL('image/png'));
   };
 
-  // ڈاؤن لوڈ کریں
   const handleDownload = () => {
     if (!croppedImage) return;
     const link = document.createElement('a');
@@ -279,7 +270,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
     link.click();
   };
 
-  // تصویر کا سائز حاصل کریں
   const getImageSize = () => {
     if (imageRef.current) {
       return {
@@ -294,12 +284,17 @@ const CropImage = ({ darkMode, setDarkMode }) => {
 
   return (
     <div className={`min-h-screen p-6 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      {/* 🎯 ہیڈر — بغیر کنٹینر کے */}
+      <h1 className="text-3xl font-bold text-center mb-2">✂️ Image Crop</h1>
+      <p className={`text-center mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+        Select and crop any area of your image with precision. Supports custom aspect ratios.
+      </p>
+
       <div className="max-w-7xl mx-auto flex gap-8">
         {/* بائیں جانب کنٹرولز */}
         <div className={`w-80 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
           <h2 className="text-xl font-bold mb-6">Crop Rectangle</h2>
 
-          {/* Width & Height */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium mb-2">Width (px)</label>
@@ -331,7 +326,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
             </div>
           </div>
 
-          {/* Aspect Ratio */}
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">Aspect Ratio</label>
             <select
@@ -350,7 +344,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
             </select>
           </div>
 
-          {/* Crop Position */}
           <h3 className="text-lg font-semibold mb-4">Crop Position</h3>
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
@@ -383,14 +376,12 @@ const CropImage = ({ darkMode, setDarkMode }) => {
             </div>
           </div>
 
-          {/* Original Image Size */}
           <div className={`p-4 mb-6 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
             <p className="text-sm">
               <strong>Original Image:</strong> {imgSize.width} × {imgSize.height} px
             </p>
           </div>
 
-          {/* Reset Button */}
           <button
             onClick={() => {
               if (imageRef.current) {
@@ -398,22 +389,18 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                 const naturalWidth = img.naturalWidth;
                 const naturalHeight = img.naturalHeight;
                 
-                // Calculate max dimensions while preserving aspect ratio
                 let maxWidth = Math.min(naturalWidth, 600);
                 let maxHeight = Math.min(naturalHeight, 600);
                 
-                // Adjust to maintain aspect ratio
                 if (naturalWidth > naturalHeight) {
                   maxHeight = Math.round((naturalHeight / naturalWidth) * maxWidth);
                 } else {
                   maxWidth = Math.round((naturalWidth / naturalHeight) * maxHeight);
                 }
 
-                // Center the crop box
                 const x = Math.round((naturalWidth - maxWidth) / 2);
                 const y = Math.round((naturalHeight - maxHeight) / 2);
 
-                // Update state
                 setCrop({
                   x,
                   y,
@@ -421,7 +408,7 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                   height: maxHeight
                 });
                 setAspectRatio('FreeForm');
-                setCroppedImage(null); // Clear any existing cropped image
+                setCroppedImage(null);
               }
             }}
             className={`w-full py-2.5 rounded-lg mb-4 ${
@@ -433,7 +420,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
             Reset
           </button>
 
-          {/* Crop & Download Button */}
           <button
             onClick={handleCrop}
             className="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
@@ -477,11 +463,9 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                   style={{ display: 'block', maxWidth: '100%', userSelect: 'none' }}
                 />
 
-                {/* کروپ باکس */}
                 {imageSrc && (
                   <>
-                    {/* Outside overlays - four separate divs for better control */}
-                    {/* Top overlay */}
+                    {/* Outside overlays */}
                     <div className="absolute" style={{ 
                       left: 0, 
                       top: 0, 
@@ -490,7 +474,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                       background: 'rgba(0,0,0,0.5)',
                       pointerEvents: 'none'
                     }} />
-                    {/* Bottom overlay */}
                     <div className="absolute" style={{ 
                       left: 0, 
                       top: `${crop.y + crop.height}px`,
@@ -499,7 +482,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                       background: 'rgba(0,0,0,0.5)',
                       pointerEvents: 'none'
                     }} />
-                    {/* Left overlay */}
                     <div className="absolute" style={{ 
                       left: 0,
                       top: `${crop.y}px`,
@@ -508,7 +490,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                       background: 'rgba(0,0,0,0.5)',
                       pointerEvents: 'none'
                     }} />
-                    {/* Right overlay */}
                     <div className="absolute" style={{ 
                       left: `${crop.x + crop.width}px`,
                       top: `${crop.y}px`,
@@ -529,8 +510,7 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                         cursor: isResizing ? 'grabbing' : 'move'
                       }}
                     >
-                      {/* ہینڈلز — ہر سمت کے لیے الگ */}
-                      {/* اوپر */}
+                      {/* ہینڈلز */}
                       <div
                         className="absolute left-0 right-0 top-[-4px] h-2 bg-indigo-500 opacity-70 cursor-ns-resize rounded-t"
                         style={{ pointerEvents: 'auto' }}
@@ -546,7 +526,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                           });
                         }}
                       />
-                      {/* نیچے */}
                       <div
                         className="absolute left-0 right-0 bottom-[-4px] h-2 bg-indigo-500 opacity-70 cursor-ns-resize rounded-b"
                         style={{ pointerEvents: 'auto' }}
@@ -562,7 +541,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                           });
                         }}
                       />
-                      {/* بائیں */}
                       <div
                         className="absolute top-0 bottom-0 left-[-4px] w-2 bg-indigo-500 opacity-70 cursor-ew-resize rounded-l"
                         style={{ pointerEvents: 'auto' }}
@@ -578,7 +556,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                           });
                         }}
                       />
-                      {/* دائیں */}
                       <div
                         className="absolute top-0 bottom-0 right-[-4px] w-2 bg-indigo-500 opacity-70 cursor-ew-resize rounded-r"
                         style={{ pointerEvents: 'auto' }}
@@ -656,72 +633,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
                           });
                         }}
                       />
-
-                      {/* Middle handles */}
-                      {/* Top middle */}
-                      <div
-                        className="absolute top-[-6px] left-1/2 transform -translate-x-1/2 w-4 h-4 bg-indigo-500 rounded-full cursor-ns-resize"
-                        style={{ pointerEvents: 'auto' }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsResizing(true);
-                          setActiveHandle('top');
-                          setResizeStart({
-                            x: e.clientX - containerRef.current.getBoundingClientRect().left,
-                            y: e.clientY - containerRef.current.getBoundingClientRect().top,
-                            crop: { ...crop }
-                          });
-                        }}
-                      />
-                      {/* Bottom middle */}
-                      <div
-                        className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2 w-4 h-4 bg-indigo-500 rounded-full cursor-ns-resize"
-                        style={{ pointerEvents: 'auto' }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsResizing(true);
-                          setActiveHandle('bottom');
-                          setResizeStart({
-                            x: e.clientX - containerRef.current.getBoundingClientRect().left,
-                            y: e.clientY - containerRef.current.getBoundingClientRect().top,
-                            crop: { ...crop }
-                          });
-                        }}
-                      />
-                      {/* Left middle */}
-                      <div
-                        className="absolute left-[-6px] top-1/2 transform -translate-y-1/2 w-4 h-4 bg-indigo-500 rounded-full cursor-ew-resize"
-                        style={{ pointerEvents: 'auto' }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsResizing(true);
-                          setActiveHandle('left');
-                          setResizeStart({
-                            x: e.clientX - containerRef.current.getBoundingClientRect().left,
-                            y: e.clientY - containerRef.current.getBoundingClientRect().top,
-                            crop: { ...crop }
-                          });
-                        }}
-                      />
-                      {/* Right middle */}
-                      <div
-                        className="absolute right-[-6px] top-1/2 transform -translate-y-1/2 w-4 h-4 bg-indigo-500 rounded-full cursor-ew-resize"
-                        style={{ pointerEvents: 'auto' }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsResizing(true);
-                          setActiveHandle('right');
-                          setResizeStart({
-                            x: e.clientX - containerRef.current.getBoundingClientRect().left,
-                            y: e.clientY - containerRef.current.getBoundingClientRect().top,
-                            crop: { ...crop }
-                          });
-                        }}
-                      />
                     </div>
                   </>
                 )}
@@ -729,7 +640,6 @@ const CropImage = ({ darkMode, setDarkMode }) => {
             </div>
           )}
 
-          {/* کروپ شدہ تصویر */}
           {croppedImage && (
             <div className={`mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6`}>
               <h3 className="text-lg font-semibold mb-4">Cropped Result</h3>
