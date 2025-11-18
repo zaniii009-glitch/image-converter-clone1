@@ -19,7 +19,9 @@ const RotateImage = ({ darkMode, setDarkMode }) => {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setImageSrc(event.target?.result || null);
+        const result = event.target?.result;
+        if (!result) return;
+        setImageSrc(result);
         setRotation(0);
         setFlipX(false);
         setFlipY(false);
@@ -43,24 +45,21 @@ const RotateImage = ({ darkMode, setDarkMode }) => {
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
-  // ✅ useCallback سے handleMouseMove
   const handleMouseMove = useCallback((e) => {
     if (!isDragging || !imageSrc) return;
     const dx = e.clientX - dragStart.x;
     const dy = e.clientY - dragStart.y;
     setImagePosition((prev) => ({
       x: prev.x + dx,
-      y: prev.y + dy
+      y: prev.y + dy,
     }));
     setDragStart({ x: e.clientX, y: e.clientY });
   }, [isDragging, imageSrc, dragStart.x, dragStart.y]);
 
-  // ✅ useCallback سے handleMouseUp
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
-  // ✅ useEffect اب درست ہے — وارننگ ختم
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
@@ -80,7 +79,6 @@ const RotateImage = ({ darkMode, setDarkMode }) => {
     setImagePosition({ x: 0, y: 0 });
   };
 
-  // ✅ محفوظ Change Image
   const handleChangeImage = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -114,7 +112,9 @@ const RotateImage = ({ darkMode, setDarkMode }) => {
       const link = document.createElement('a');
       link.download = 'transformed-image.png';
       link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     };
     img.src = imageSrc;
   };
@@ -122,7 +122,7 @@ const RotateImage = ({ darkMode, setDarkMode }) => {
   return (
     <div className={`min-h-screen p-6 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-2">🔄 Rotate & Transform Image</h1>
+        <h1 className="text-3xl font-bold text-center mb-2">Rotate & Transform Image</h1>
         <p className={`text-center mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
           Rotate, flip, and zoom your images with precision. Download in high quality.
         </p>
@@ -130,29 +130,72 @@ const RotateImage = ({ darkMode, setDarkMode }) => {
         {/* Controls */}
         <div className={`mb-6 p-4 rounded-xl shadow-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <button onClick={rotateLeft} className="flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <button
+              onClick={rotateLeft}
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
               ↺ Rotate Left
             </button>
-            <button onClick={rotateRight} className="flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <button
+              onClick={rotateRight}
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
               Rotate Right ↻
             </button>
-            <button onClick={flipHorizontal} className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors ${flipX ? 'bg-green-600 text-white' : darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}>
+            <button
+              onClick={flipHorizontal}
+              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                flipX
+                  ? 'bg-green-600 text-white'
+                  : darkMode
+                  ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+              }`}
+            >
               🔄 Flip H
             </button>
-            <button onClick={flipVertical} className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors ${flipY ? 'bg-green-600 text-white' : darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}>
+            <button
+              onClick={flipVertical}
+              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                flipY
+                  ? 'bg-green-600 text-white'
+                  : darkMode
+                  ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+              }`}
+            >
               🔄 Flip V
             </button>
-            <button onClick={handleReset} className="flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+            <button
+              onClick={handleReset}
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
               🔄 Reset
             </button>
           </div>
 
           <div className="mt-4 flex items-center justify-center gap-4">
-            <button onClick={zoomOut} disabled={zoom <= 20} className={`p-2 rounded-full ${zoom <= 20 ? 'bg-gray-500 text-gray-300 cursor-not-allowed' : 'bg-gray-700 text-white hover:bg-gray-600'}`}>
+            <button
+              onClick={zoomOut}
+              disabled={zoom <= 20}
+              className={`p-2 rounded-full ${
+                zoom <= 20
+                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                  : 'bg-gray-700 text-white hover:bg-gray-600'
+              }`}
+            >
               −
             </button>
             <span className="text-lg font-medium w-20 text-center">{zoom}%</span>
-            <button onClick={zoomIn} disabled={zoom >= 300} className={`p-2 rounded-full ${zoom >= 300 ? 'bg-gray-500 text-gray-300 cursor-not-allowed' : 'bg-gray-700 text-white hover:bg-gray-600'}`}>
+            <button
+              onClick={zoomIn}
+              disabled={zoom >= 300}
+              className={`p-2 rounded-full ${
+                zoom >= 300
+                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                  : 'bg-gray-700 text-white hover:bg-gray-600'
+              }`}
+            >
               +
             </button>
           </div>
@@ -177,19 +220,30 @@ const RotateImage = ({ darkMode, setDarkMode }) => {
                     top: '50%',
                     transform: `translate(${imagePosition.x}px, ${imagePosition.y}px) translate(-50%, -50%) rotate(${rotation}deg) scale(${zoom / 100}) scaleX(${flipX ? -1 : 1}) scaleY(${flipY ? -1 : 1})`,
                     cursor: isDragging ? 'grabbing' : 'move',
-                    transition: isDragging ? 'none' : 'transform 0.2s ease'
+                    transition: isDragging ? 'none' : 'transform 0.2s ease',
                   }}
                 />
               </div>
 
               <div className="mt-6 flex justify-center gap-4">
-                <button onClick={handleDownload} className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium flex items-center gap-2">
+                <button
+                  onClick={handleDownload}
+                  className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium flex items-center gap-2"
+                >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
                   </svg>
                   Download Image
                 </button>
-                <button onClick={handleChangeImage} className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium">
+                <button
+                  onClick={handleChangeImage}
+                  className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                >
                   Change Image
                 </button>
               </div>
@@ -197,7 +251,12 @@ const RotateImage = ({ darkMode, setDarkMode }) => {
           ) : (
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-12 text-center">
               <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
               <h3 className="text-xl font-semibold mb-2">Upload an Image to Transform</h3>
               <p className="text-gray-500 dark:text-gray-400 mb-4">Supports JPG, PNG, WEBP</p>
@@ -211,7 +270,6 @@ const RotateImage = ({ darkMode, setDarkMode }) => {
           )}
         </div>
 
-        {/* ✅ یہ <input> ہمیشہ رہے گا — چاہے تصویر ہو یا نہ ہو */}
         <input
           type="file"
           accept="image/*"

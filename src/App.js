@@ -9,7 +9,7 @@ const ImageResizer = React.lazy(() => import('./pages/ImageResizer'));
 const RotateImage = React.lazy(() => import('./pages/RotateImage'));
 const CropImage = React.lazy(() => import('./pages/CropImage'));
 const ImageCompressor = React.lazy(() => import('./pages/ImageCompressor'));
-const ImageEnlarger = React.lazy(() => import('./pages/ImageEnlarger'));
+// const ImageEnlarger = React.lazy(() => import('./pages/ImageEnlarger'));
 const CollageMaker = React.lazy(() => import('./pages/CollageMaker'));
 const ColorPicker = React.lazy(() => import('./pages/ColorPicker'));
 
@@ -34,7 +34,7 @@ function App() {
             <Route path="/image-resizer" element={<ImageResizer darkMode={logic.darkMode} setDarkMode={logic.setDarkMode} />} />
             <Route path="/crop-image" element={<CropImage darkMode={logic.darkMode} setDarkMode={logic.setDarkMode} />} />
             <Route path="/image-compressor" element={<ImageCompressor darkMode={logic.darkMode} setDarkMode={logic.setDarkMode} />} />
-            <Route path="/image-enlarger" element={<ImageEnlarger darkMode={logic.darkMode} setDarkMode={logic.setDarkMode} />} />
+            {/* <Route path="/image-enlarger" element={<ImageEnlarger darkMode={logic.darkMode} setDarkMode={logic.setDarkMode} />} /> */}
             <Route path="/collage-maker" element={<CollageMaker darkMode={logic.darkMode} setDarkMode={logic.setDarkMode} />} />
             <Route path="/color-picker" element={<ColorPicker darkMode={logic.darkMode} setDarkMode={logic.setDarkMode} />} />
 

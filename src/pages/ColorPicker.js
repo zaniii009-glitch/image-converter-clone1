@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 const ColorPicker = ({ darkMode = true, setDarkMode }) => {
+  // State
   const [selectedColor, setSelectedColor] = useState({ hex: '#2596be', r: 37, g: 150, b: 190 });
   const [imageSrc, setImageSrc] = useState(null);
   const [images, setImages] = useState([]);
@@ -11,33 +12,25 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   const [dragCounter, setDragCounter] = useState(0);
   const [activeTab, setActiveTab] = useState('image');
   const [hueValue, setHueValue] = useState(195);
+  const [satValue, setSatValue] = useState(67);
+  const [lightValue, setLightValue] = useState(45);
+  const [isEyeDropperSupported, setIsEyeDropperSupported] = useState(false);
+
+  // Refs
   const hueRef = useRef(hueValue);
+  const satRef = useRef(satValue);
+  const lightRef = useRef(lightValue);
   const rafRef = useRef(null);
   const draggingRef = useRef(false);
   const moveHandlerRef = useRef(null);
   const upHandlerRef = useRef(null);
   const indicatorRef = useRef(null);
-  const [satValue, setSatValue] = useState(67);
-  const [lightValue, setLightValue] = useState(45);
-  const satRef = useRef(satValue);
-  const lightRef = useRef(lightValue);
-  const [isEyeDropperSupported, setIsEyeDropperSupported] = useState(false);
   const colorSquareRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageRef = useRef(null);
 
-  useEffect(() => {
-    if ('EyeDropper' in window) {
-      setIsEyeDropperSupported(true);
-    }
-  }, []);
-
-  useEffect(() => { hueRef.current = hueValue; }, [hueValue]);
-  useEffect(() => { satRef.current = satValue; }, [satValue]);
-  useEffect(() => { lightRef.current = lightValue; }, [lightValue]);
-
-  // Background & text classes based on darkMode
+  // Theme classes
   const bgColor = darkMode ? 'bg-gray-900' : 'bg-gray-50';
   const textColor = darkMode ? 'text-white' : 'text-gray-900';
   const secondaryText = darkMode ? 'text-gray-400' : 'text-gray-600';
@@ -52,223 +45,67 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   const iconColor = darkMode ? 'text-gray-600' : 'text-gray-400';
   const buttonHover = darkMode ? 'hover:bg-cyan-600' : 'hover:bg-cyan-400';
 
-  const generatePalette = (img) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    const maxSize = 100;
-    const scale = Math.min(maxSize / img.width, maxSize / img.height);
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
-    
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixels = imageData.data;
-    const colorMap = {};
-    
-    for (let i = 0; i < pixels.length; i += 4) {
-      const r = Math.floor(pixels[i] / 30) * 30;
-      const g = Math.floor(pixels[i + 1] / 30) * 30;
-      const b = Math.floor(pixels[i + 2] / 30) * 30;
-      const key = `${r},${g},${b}`;
-      colorMap[key] = (colorMap[key] || 0) + 1;
+  // Initialize EyeDropper support
+  useEffect(() => {
+    if ('EyeDropper' in window) {
+      setIsEyeDropperSupported(true);
     }
-    
-    const sortedColors = Object.entries(colorMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([color]) => {
-        const [r, g, b] = color.split(',').map(Number);
-        return `rgb(${r}, ${g}, ${b})`;
-      });
-    
-    setPalette(sortedColors);
-  };
+  }, []);
 
-  const processImage = (file) => {
-    if (!file || !file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
+  // Keep refs synced
+  useEffect(() => { hueRef.current = hueValue; }, [hueValue]);
+  useEffect(() => { satRef.current = satValue; }, [satValue]);
+  useEffect(() => { lightRef.current = lightValue; }, [lightValue]);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const imageData = {
-          src: e.target.result,
-          name: file.name,
-          img: img
-        };
-        
-        setImages(prevImages => {
-          const newImages = [...prevImages, imageData];
-          setCurrentImageIndex(newImages.length - 1);
-          return newImages;
-        });
-        
-        imageRef.current = img;
-        setImageSrc(e.target.result);
-        
-        setTimeout(() => {
-          const canvas = canvasRef.current;
-          if (!canvas) {
-            console.error('Canvas not found');
-            return;
+  // Cleanup event listeners and animation frames
+  useEffect(() => {
+    return () => {
+      const el = colorSquareRef.current;
+      if (el) {
+        try {
+          if (moveHandlerRef.current) el.removeEventListener('pointermove', moveHandlerRef.current);
+          if (upHandlerRef.current) {
+            el.removeEventListener('pointerup', upHandlerRef.current);
+            el.removeEventListener('pointercancel', upHandlerRef.current);
           }
-          
-          canvas.width = img.width;
-          canvas.height = img.height;
-          
-          const maxWidth = 600;
-          const scale = Math.min(1, maxWidth / img.width);
-          canvas.style.width = `${img.width * scale}px`;
-          canvas.style.height = `${img.height * scale}px`;
-          
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-          }
-          
-          generatePalette(img);
-        }, 50);
-      };
-      img.src = e.target.result;
+        } catch {}
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef);
+        rafRef.current = null;
+      }
+      draggingRef.current = false;
     };
-    reader.readAsDataURL(file);
-  };
+  }, []);
 
-  const handleImageUpload = (e) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      Array.from(files).forEach(file => {
-        processImage(file);
-      });
+  // Redraw canvas when tab/image changes
+  useEffect(() => {
+    if (activeTab === 'image' && imageSrc && imageRef.current) {
+      const draw = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const img = imageRef.current;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const maxWidth = 600;
+        const scale = Math.min(1, maxWidth / img.width);
+        canvas.style.width = `${img.width * scale}px`;
+        canvas.style.height = `${img.height * scale}px`;
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.drawImage(img, 0, 0);
+      };
+      const id = setTimeout(draw, 100);
+      return () => clearTimeout(id);
     }
-  };
+  }, [activeTab, imageSrc]);
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    setDragCounter(0);
-    
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      Array.from(files).forEach(file => {
-        processImage(file);
-      });
-    }
-  };
-
-  const switchImage = (index) => {
-    if (index < 0 || index >= images.length) return;
-    
-    const imageData = images[index];
-    setCurrentImageIndex(index);
-    setImageSrc(imageData.src);
-    imageRef.current = imageData.img;
-    
-    setTimeout(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      
-      const img = imageData.img;
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      const maxWidth = 600;
-      const scale = Math.min(1, maxWidth / img.width);
-      canvas.style.width = `${img.width * scale}px`;
-      canvas.style.height = `${img.height * scale}px`;
-      
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-      }
-      
-      generatePalette(img);
-    }, 50);
-  };
-
-  const removeImage = (index) => {
-    const newImages = images.filter((_, i) => i !== index);
-    setImages(newImages);
-    
-    if (newImages.length === 0) {
-      setImageSrc(null);
-      setPalette([]);
-      setCurrentImageIndex(0);
-    } else if (index === currentImageIndex) {
-      const newIndex = Math.min(index, newImages.length - 1);
-      setTimeout(() => switchImage(newIndex), 100);
-    } else if (index < currentImageIndex) {
-      setCurrentImageIndex(currentImageIndex - 1);
-    }
-  };
-
-  const handleCanvasClick = (e) => {
-    const canvas = canvasRef.current;
-    if (!canvas || !imageRef.current) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    const x = Math.floor((e.clientX - rect.left) * scaleX);
-    const y = Math.floor((e.clientY - rect.top) * scaleY);
-
-    const ctx = canvas.getContext('2d');
-    const pixel = ctx.getImageData(x, y, 1, 1).data;
-    
-    updateSelectedColor(pixel[0], pixel[1], pixel[2]);
-  };
-
-  const updateSelectedColor = (r, g, b, fromPicker = false) => {
-    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-    
-    setSelectedColor({ hex, r, g, b });
-    
-    if (!fromPicker) {
-      const rNorm = r / 255;
-      const gNorm = g / 255;
-      const bNorm = b / 255;
-      
-      const max = Math.max(rNorm, gNorm, bNorm);
-      const min = Math.min(rNorm, gNorm, bNorm);
-      const delta = max - min;
-      
-      let h = 0;
-      if (delta !== 0) {
-        if (max === rNorm) {
-          h = 60 * (((gNorm - bNorm) / delta) % 6);
-        } else if (max === gNorm) {
-          h = 60 * (((bNorm - rNorm) / delta) + 2);
-        } else {
-          h = 60 * (((rNorm - gNorm) / delta) + 4);
-        }
-      }
-      if (h < 0) h += 360;
-      
-      const s = max === 0 ? 0 : (delta / max) * 100;
-      const v = max * 100;
-      
-      setHueValue(Math.round(h));
-      setSatValue(Math.round(s));
-      setLightValue(Math.round(v));
-    }
-  };
+  // =============== HELPER FUNCTIONS ===============
 
   const rgbToHsl = (r, g, b) => {
-    r /= 255;
-    g /= 255;
-    b /= 255;
-
+    r /= 255; g /= 255; b /= 255;
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
     let h, s, l = (max + min) / 2;
-
     if (max === min) {
       h = s = 0;
     } else {
@@ -282,33 +119,21 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
       }
       h /= 6;
     }
-
     return { h: h * 360, s: s * 100, l: l * 100 };
   };
 
   const hslToRgb = (h, s, l) => {
-    s /= 100;
-    l /= 100;
-
+    s /= 100; l /= 100;
     const c = (1 - Math.abs(2 * l - 1)) * s;
     const x = c * (1 - Math.abs((h / 60) % 2 - 1));
     const m = l - c / 2;
     let r = 0, g = 0, b = 0;
-
-    if (h >= 0 && h < 60) {
-      r = c; g = x; b = 0;
-    } else if (h >= 60 && h < 120) {
-      r = x; g = c; b = 0;
-    } else if (h >= 120 && h < 180) {
-      r = 0; g = c; b = x;
-    } else if (h >= 180 && h < 240) {
-      r = 0; g = x; b = c;
-    } else if (h >= 240 && h < 300) {
-      r = x; g = 0; b = c;
-    } else if (h >= 300 && h < 360) {
-      r = c; g = 0; b = x;
-    }
-
+    if (h >= 0 && h < 60) { r = c; g = x; }
+    else if (h >= 60 && h < 120) { r = x; g = c; }
+    else if (h >= 120 && h < 180) { g = c; b = x; }
+    else if (h >= 180 && h < 240) { g = x; b = c; }
+    else if (h >= 240 && h < 300) { r = x; b = c; }
+    else { r = c; b = x; }
     return {
       r: Math.round((r + m) * 255),
       g: Math.round((g + m) * 255),
@@ -317,44 +142,30 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   };
 
   const hsvToRgb = (h, s, v) => {
-    s /= 100;
-    v /= 100;
+    s /= 100; v /= 100;
     const c = v * s;
     const x = c * (1 - Math.abs((h / 60) % 2 - 1));
     const m = v - c;
     let r = 0, g = 0, b = 0;
-
-    if (h >= 0 && h < 60) {
-      r = c; g = x; b = 0;
-    } else if (h >= 60 && h < 120) {
-      r = x; g = c; b = 0;
-    } else if (h >= 120 && h < 180) {
-      r = 0; g = c; b = x;
-    } else if (h >= 180 && h < 240) {
-      r = 0; g = x; b = c;
-    } else if (h >= 240 && h < 300) {
-      r = x; g = 0; b = c;
-    } else {
-      r = c; g = 0; b = x;
-    }
-
+    if (h >= 0 && h < 60) { r = c; g = x; }
+    else if (h >= 60 && h < 120) { r = x; g = c; }
+    else if (h >= 120 && h < 180) { g = c; b = x; }
+    else if (h >= 180 && h < 240) { g = x; b = c; }
+    else if (h >= 240 && h < 300) { r = x; b = c; }
+    else { r = c; b = x; }
     return {
       r: Math.round((r + m) * 255),
       g: Math.round((g + m) * 255),
       b: Math.round((b + m) * 255)
     };
   };
-  
-  const rgbToCmyk = (r, g, b) => {
-    r /= 255;
-    g /= 255;
-    b /= 255;
 
+  const rgbToCmyk = (r, g, b) => {
+    r /= 255; g /= 255; b /= 255;
     const k = 1 - Math.max(r, g, b);
     const c = k === 1 ? 0 : (1 - r - k) / (1 - k);
     const m = k === 1 ? 0 : (1 - g - k) / (1 - k);
     const y = k === 1 ? 0 : (1 - b - k) / (1 - k);
-
     return {
       c: Math.round(c * 100),
       m: Math.round(m * 100),
@@ -364,64 +175,168 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   };
 
   const rgbToXyz = (r, g, b) => {
-    r /= 255;
-    g /= 255;
-    b /= 255;
-
-    r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
-    g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
-    b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
-
-    r *= 100;
-    g *= 100;
-    b *= 100;
-
+    r = r / 255 > 0.04045 ? Math.pow((r / 255 + 0.055) / 1.055, 2.4) : (r / 255) / 12.92;
+    g = g / 255 > 0.04045 ? Math.pow((g / 255 + 0.055) / 1.055, 2.4) : (g / 255) / 12.92;
+    b = b / 255 > 0.04045 ? Math.pow((b / 255 + 0.055) / 1.055, 2.4) : (b / 255) / 12.92;
     return {
-      x: Math.round(r * 0.4124 + g * 0.3576 + b * 0.1805),
-      y: Math.round(r * 0.2126 + g * 0.7152 + b * 0.0722),
-      z: Math.round(r * 0.0193 + g * 0.1192 + b * 0.9505)
+      x: Math.round((r * 0.4124 + g * 0.3576 + b * 0.1805) * 100),
+      y: Math.round((r * 0.2126 + g * 0.7152 + b * 0.0722) * 100),
+      z: Math.round((r * 0.0193 + g * 0.1192 + b * 0.9505) * 100)
     };
   };
 
   const xyzToLab = (x, y, z) => {
-    x /= 95.047;
-    y /= 100.000;
-    z /= 108.883;
-
-    x = x > 0.008856 ? Math.pow(x, 1/3) : (7.787 * x) + 16/116;
-    y = y > 0.008856 ? Math.pow(y, 1/3) : (7.787 * y) + 16/116;
-    z = z > 0.008856 ? Math.pow(z, 1/3) : (7.787 * z) + 16/116;
-
+    x /= 95.047; y /= 100; z /= 108.883;
+    const fx = x > 0.008856 ? Math.pow(x, 1/3) : 7.787 * x + 16/116;
+    const fy = y > 0.008856 ? Math.pow(y, 1/3) : 7.787 * y + 16/116;
+    const fz = z > 0.008856 ? Math.pow(z, 1/3) : 7.787 * z + 16/116;
     return {
-      l: Math.round((116 * y) - 16),
-      a: Math.round(500 * (x - y)),
-      b: Math.round(200 * (y - z))
+      l: Math.round(116 * fy - 16),
+      a: Math.round(500 * (fx - fy)),
+      b: Math.round(200 * (fy - fz))
     };
   };
 
   const getColorVariations = () => {
     const shades = [];
     const tints = [];
-    
     for (let i = 0; i <= 100; i += 10) {
-      const shadeFactor = 1 - (i / 100);
-      const shadeR = Math.round(selectedColor.r * shadeFactor);
-      const shadeG = Math.round(selectedColor.g * shadeFactor);
-      const shadeB = Math.round(selectedColor.b * shadeFactor);
+      const shadeR = Math.round(selectedColor.r * (1 - i / 100));
+      const shadeG = Math.round(selectedColor.g * (1 - i / 100));
+      const shadeB = Math.round(selectedColor.b * (1 - i / 100));
       shades.push({ r: shadeR, g: shadeG, b: shadeB, percent: i });
 
-      const tintFactor = i / 100;
-      const tintR = Math.round(selectedColor.r + (255 - selectedColor.r) * tintFactor);
-      const tintG = Math.round(selectedColor.g + (255 - selectedColor.g) * tintFactor);
-      const tintB = Math.round(selectedColor.b + (255 - selectedColor.b) * tintFactor);
+      const tintR = Math.round(selectedColor.r + (255 - selectedColor.r) * (i / 100));
+      const tintG = Math.round(selectedColor.g + (255 - selectedColor.g) * (i / 100));
+      const tintB = Math.round(selectedColor.b + (255 - selectedColor.b) * (i / 100));
       tints.push({ r: tintR, g: tintG, b: tintB, percent: i });
     }
-    
     return { shades, tints };
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const updateSelectedColor = (r, g, b, fromPicker = false) => {
+    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    setSelectedColor({ hex, r, g, b });
+
+    if (!fromPicker) {
+      const { h, s, l } = rgbToHsl(r, g, b);
+      setHueValue(Math.round(h));
+      setSatValue(Math.round(s));
+      setLightValue(Math.round(l));
+    }
+  };
+
+  const generatePalette = (img) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const maxSize = 100;
+    const scale = Math.min(maxSize / img.width, maxSize / img.height);
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const colorMap = {};
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const r = Math.floor(imageData.data[i] / 30) * 30;
+      const g = Math.floor(imageData.data[i + 1] / 30) * 30;
+      const b = Math.floor(imageData.data[i + 2] / 30) * 30;
+      const key = `${r},${g},${b}`;
+      colorMap[key] = (colorMap[key] || 0) + 1;
+    }
+
+    const sortedColors = Object.entries(colorMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([color]) => {
+        const [r, g, b] = color.split(',').map(Number);
+        return `rgb(${r}, ${g}, ${b})`;
+      });
+
+    setPalette(sortedColors);
+  };
+
+  // =============== HANDLERS ===============
+
+  const processImage = (file) => {
+    if (!file || !file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const imageData = { src: e.target.result, name: file.name, img };
+        setImages((prev) => [...prev, imageData]);
+        setCurrentImageIndex((prev) => prev + 1);
+        imageRef.current = img;
+        setImageSrc(e.target.result);
+        generatePalette(img);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageUpload = (e) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach(processImage);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    setDragCounter(0);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach(processImage);
+    }
+  };
+
+  const switchImage = (index) => {
+    if (index < 0 || index >= images.length) return;
+    const imgData = images[index];
+    setCurrentImageIndex(index);
+    setImageSrc(imgData.src);
+    imageRef.current = imgData.img;
+    generatePalette(imgData.img);
+  };
+
+  const removeImage = (index) => {
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages);
+    if (newImages.length === 0) {
+      setImageSrc(null);
+      setPalette([]);
+      setCurrentImageIndex(0);
+    } else if (index === currentImageIndex) {
+      const newIndex = Math.min(index, newImages.length - 1);
+      setTimeout(() => switchImage(newIndex), 50);
+    } else if (index < currentImageIndex) {
+      setCurrentImageIndex(currentImageIndex - 1);
+    }
+  };
+
+  const handleCanvasClick = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imageRef.current) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = Math.floor((e.clientX - rect.left) * scaleX);
+    const y = Math.floor((e.clientY - rect.top) * scaleY);
+    const ctx = canvas.getContext('2d');
+    const pixel = ctx.getImageData(x, y, 1, 1).data;
+    updateSelectedColor(pixel[0], pixel[1], pixel[2]);
   };
 
   const handleHueChange = (e) => {
@@ -435,20 +350,17 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
     const el = colorSquareRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const rawX = clientX - rect.left;
-    const rawY = clientY - rect.top;
-    const x = Math.max(0, Math.min(rawX, rect.width));
-    const y = Math.max(0, Math.min(rawY, rect.height));
-
-    const saturation = Math.round(((x / rect.width) * 100) * 100) / 100;
-    const value = Math.round(((1 - (y / rect.height)) * 100) * 100) / 100;
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    const y = Math.max(0, Math.min(clientY - rect.top, rect.height));
+    const saturation = Math.round((x / rect.width) * 100);
+    const value = Math.round((1 - y / rect.height) * 100);
 
     const indicator = indicatorRef.current;
     if (indicator) {
       indicator.style.left = `${saturation}%`;
       indicator.style.top = `${100 - value}%`;
-      const rgbImmediate = hsvToRgb(hueRef.current, saturation, value);
-      indicator.style.backgroundColor = `rgb(${rgbImmediate.r}, ${rgbImmediate.g}, ${rgbImmediate.b})`;
+      const rgb = hsvToRgb(hueRef.current, saturation, value);
+      indicator.style.backgroundColor = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
       indicator.style.border = value > 60 ? '2px solid rgba(0,0,0,0.6)' : '2px solid rgba(255,255,255,0.9)';
     }
 
@@ -464,98 +376,30 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
       rafRef.current = null;
     });
   };
- 
+
   const onPointerDown = (e) => {
     e.preventDefault();
     const el = colorSquareRef.current;
     if (!el) return;
-
     draggingRef.current = true;
-
-    if (el.setPointerCapture) {
-      try { el.setPointerCapture(e.pointerId); } catch {}
-    }
+    if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
 
     handleColorPointer(e.clientX, e.clientY);
 
-    moveHandlerRef.current = (ev) => {
-      if (!draggingRef.current) return;
-      handleColorPointer(ev.clientX, ev.clientY);
-    };
-
+    moveHandlerRef.current = (ev) => draggingRef.current && handleColorPointer(ev.clientX, ev.clientY);
     upHandlerRef.current = (ev) => {
       draggingRef.current = false;
-      try { if (el.releasePointerCapture) el.releasePointerCapture(ev.pointerId ?? e.pointerId); } catch {}
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      try {
-        el.removeEventListener('pointermove', moveHandlerRef.current);
-        el.removeEventListener('pointerup', upHandlerRef.current);
-        el.removeEventListener('pointercancel', upHandlerRef.current);
-      } catch {}
-      moveHandlerRef.current = null;
-      upHandlerRef.current = null;
+      if (el.releasePointerCapture) el.releasePointerCapture(ev.pointerId);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      el.removeEventListener('pointermove', moveHandlerRef.current);
+      el.removeEventListener('pointerup', upHandlerRef.current);
+      el.removeEventListener('pointercancel', upHandlerRef.current);
     };
 
     el.addEventListener('pointermove', moveHandlerRef.current);
     el.addEventListener('pointerup', upHandlerRef.current);
     el.addEventListener('pointercancel', upHandlerRef.current);
   };
- 
-  useEffect(() => {
-    return () => {
-      const el = colorSquareRef.current;
-      if (el) {
-        try {
-          if (moveHandlerRef.current) el.removeEventListener('pointermove', moveHandlerRef.current);
-          if (upHandlerRef.current) {
-            el.removeEventListener('pointerup', upHandlerRef.current);
-            el.removeEventListener('pointercancel', upHandlerRef.current);
-          }
-        } catch {}
-      } else {
-        try {
-          if (moveHandlerRef.current) document.removeEventListener('pointermove', moveHandlerRef.current);
-          if (upHandlerRef.current) {
-            document.removeEventListener('pointerup', upHandlerRef.current);
-            document.removeEventListener('pointercancel', upHandlerRef.current);
-          }
-        } catch {}
-      }
-      moveHandlerRef.current = null;
-      upHandlerRef.current = null;
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      draggingRef.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'image' && imageSrc && imageRef.current) {
-      setTimeout(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        
-        const img = imageRef.current;
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        const maxWidth = 600;
-        const scale = Math.min(1, maxWidth / img.width);
-        canvas.style.width = `${img.width * scale}px`;
-        canvas.style.height = `${img.height * scale}px`;
-        
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-        }
-      }, 100);
-    }
-  }, [activeTab, imageSrc]);
 
   const handlePaletteClick = (color) => {
     const rgb = color.match(/\d+/g).map(Number);
@@ -564,15 +408,13 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
 
   const handlePickFromScreen = async () => {
     if (!isEyeDropperSupported) {
-      alert('Sorry! Your browser does not support the EyeDropper API. Please use Chrome, Edge, or Opera browser (version 95+).');
+      alert('Sorry! Your browser does not support the EyeDropper API. Please use Chrome, Edge, or Opera (v95+).');
       return;
     }
-
     try {
       const eyeDropper = new window.EyeDropper();
       const result = await eyeDropper.open();
-      
-      if (result && result.sRGBHex) {
+      if (result?.sRGBHex) {
         const hex = result.sRGBHex;
         const r = parseInt(hex.substr(1, 2), 16);
         const g = parseInt(hex.substr(3, 2), 16);
@@ -580,11 +422,11 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
         updateSelectedColor(r, g, b);
       }
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('EyeDropper error:', error);
-      }
+      if (error.name !== 'AbortError') console.error('EyeDropper error:', error);
     }
   };
+
+  // =============== RENDER ===============
 
   const cmyk = rgbToCmyk(selectedColor.r, selectedColor.g, selectedColor.b);
   const xyz = rgbToXyz(selectedColor.r, selectedColor.g, selectedColor.b);
@@ -597,48 +439,41 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <header className="mb-8">
-          {activeTab === 'image' ? (
-            <>
-              <h1 className="text-5xl font-bold text-center mb-3">Image Color Picker</h1>
-              <p className={`text-center text-lg ${secondaryText}`}>
-                Upload your image and click anywhere to extract colors instantly. Supports multiple images.
-              </p>
-            </>
-          ) : (
-            <>
-              <h1 className="text-5xl font-bold text-center mb-3">Color Picker & Generator</h1>
-              <p className={`text-center text-lg ${secondaryText}`}>
-                Pick colors interactively, generate variations, and get all color codes in multiple formats.
-              </p>
-            </>
-          )}
+          <h1 className="text-5xl font-bold text-center mb-3">
+            {activeTab === 'image' ? 'Image Color Picker' : 'Color Picker & Generator'}
+          </h1>
+          <p className={`text-center text-lg ${secondaryText}`}>
+            {activeTab === 'image'
+              ? 'Upload your image and click anywhere to extract colors instantly.'
+              : 'Pick colors interactively, generate variations, and get all color codes.'}
+          </p>
         </header>
 
         {/* Tabs */}
-          <div className={`flex justify-center gap-8 mb-8 border-b ${border}`}>
-            <button
-              onClick={() => setActiveTab('image')}
-              className={`pb-3 px-4 font-medium transition-all ${
-                activeTab === 'image'
-                  ? `${textColor} border-b-2 border-cyan-500`
-                  : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
-              }`}
-            >
-              Pick color from image
-            </button>
-            <button
-              onClick={() => setActiveTab('picker')}
-              className={`pb-3 px-4 font-medium transition-all ${
-                activeTab === 'picker'
-                  ? `${textColor} border-b-2 border-cyan-500`
-                  : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
-              }`}
-            >
-              Color Picker
-            </button>
-          </div>
+        <div className={`flex justify-center gap-8 mb-8 border-b ${border}`}>
+          <button
+            onClick={() => setActiveTab('image')}
+            className={`pb-3 px-4 font-medium transition-all ${
+              activeTab === 'image'
+                ? `${textColor} border-b-2 border-cyan-500`
+                : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
+            }`}
+          >
+            Pick color from image
+          </button>
+          <button
+            onClick={() => setActiveTab('picker')}
+            className={`pb-3 px-4 font-medium transition-all ${
+              activeTab === 'picker'
+                ? `${textColor} border-b-2 border-cyan-500`
+                : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
+            }`}
+          >
+            Color Picker
+          </button>
+        </div>
 
-        {/* Tab Content */}
+        {/* Image Tab */}
         {activeTab === 'image' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
@@ -653,18 +488,16 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                   </button>
                 )}
               </div>
-              
+
               {images.length === 0 ? (
                 <div
                   className={`border-4 border-dashed rounded-xl p-16 text-center cursor-pointer transition-all ${
-                    isDragging 
-                      ? `${dragBorderColor} ${dragActiveBg}` 
-                      : `${border} ${dragAreaBg}`
+                    isDragging ? `${dragBorderColor} ${dragActiveBg}` : `${border} ${dragAreaBg}`
                   }`}
                   onDrop={handleDrop}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                  onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragCounter(prev => prev + 1); setIsDragging(true); }}
-                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragCounter(prev => { const n = prev - 1; if (n === 0) setIsDragging(false); return n; }); }}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragEnter={(e) => { e.preventDefault(); setDragCounter((prev) => prev + 1); setIsDragging(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setDragCounter((prev) => { const n = prev - 1; if (n === 0) setIsDragging(false); return n; }); }}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <svg className={`w-24 h-24 mx-auto mb-4 ${iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -692,10 +525,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                             <img src={img.src} alt={img.name} className="w-full h-full object-cover" />
                           </div>
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeImage(index);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); removeImage(index); }}
                             className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
                           >
                             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -706,7 +536,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                       ))}
                     </div>
                   )}
-                  
+
                   <div className="relative">
                     {imageSrc && (
                       <canvas
@@ -726,7 +556,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                       </button>
                     )}
                   </div>
-                  
+
                   {images.length > 0 && (
                     <div className={`mt-3 text-sm ${secondaryText}`}>
                       {images[currentImageIndex]?.name} ({currentImageIndex + 1} of {images.length})
@@ -734,30 +564,27 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                   )}
                 </div>
               )}
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleImageUpload} 
-                accept="image/*" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
                 multiple
-                className="hidden" 
+                className="hidden"
               />
             </div>
 
             <div>
               <h3 className="font-semibold mb-3 text-lg">Selected Color</h3>
               <div className={`${cardBg} rounded-xl p-4`}>
-                <div
-                  className="w-full h-40 rounded-lg mb-4"
-                  style={{ backgroundColor: selectedColor.hex }}
-                />
+                <div className="w-full h-40 rounded-lg mb-4" style={{ backgroundColor: selectedColor.hex }} />
                 <div className="space-y-2">
                   {[
                     { label: 'HEX', value: selectedColor.hex },
                     { label: 'RGB', value: `${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b}` },
                     { label: 'HSL', value: `${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%` },
                     { label: 'CMYK', value: `${cmyk.c}, ${cmyk.m}, ${cmyk.y}, ${cmyk.k}` }
-                  ].map(item => (
+                  ].map((item) => (
                     <div key={item.label} className={`flex items-center justify-between ${inputBg} rounded p-2`}>
                       <span className={`text-sm ${secondaryText}`}>{item.label}</span>
                       <div className="flex items-center gap-2">
@@ -791,14 +618,15 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
             </div>
           </div>
         )}
-
+      
+        {/* Picker Tab */}
         {activeTab === 'picker' && (
           <div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               <div className={`${cardBg} rounded-xl p-6`}>
                 <h3 className="text-xl font-bold mb-4">Color Conversion</h3>
-                
-                <div 
+
+                <div
                   ref={colorSquareRef}
                   className="relative w-full aspect-square bg-white rounded-lg mb-4 cursor-crosshair select-none"
                   style={{
@@ -806,20 +634,20 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                     touchAction: 'none'
                   }}
                   onPointerDown={onPointerDown}
-                 >
-                   <div
-                     ref={indicatorRef}
-                     className="absolute w-6 h-6 rounded-full pointer-events-none transition-all"
-                     style={{
-                       left: `${satValue}%`,
-                       top: `${100 - lightValue}%`,
-                       transform: 'translate(-50%, -50%)',
-                       backgroundColor: selectedColor.hex,
-                       border: lightValue > 60 ? '2px solid rgba(0,0,0,0.6)' : '2px solid rgba(255,255,255,0.9)',
-                       boxShadow: '0 2px 8px rgba(0,0,0,0.35), 0 0 0 2px rgba(0,0,0,0.05)'
-                     }}
-                   />
-                  </div>
+                >
+                  <div
+                    ref={indicatorRef}
+                    className="absolute w-6 h-6 rounded-full pointer-events-none transition-all"
+                    style={{
+                      left: `${satValue}%`,
+                      top: `${100 - lightValue}%`,
+                      transform: 'translate(-50%, -50%)',
+                      backgroundColor: selectedColor.hex,
+                      border: lightValue > 60 ? '2px solid rgba(0,0,0,0.6)' : '2px solid rgba(255,255,255,0.9)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.35), 0 0 0 2px rgba(0,0,0,0.05)'
+                    }}
+                  />
+                </div>
 
                 <div className="mb-4">
                   <input
@@ -853,15 +681,16 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                   />
                 </div>
 
-                <button 
+                <button
                   onClick={handlePickFromScreen}
                   className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                    isEyeDropperSupported 
-                      ? (darkMode ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800')
+                    isEyeDropperSupported
+                      ? darkMode
+                        ? 'bg-white text-gray-900 hover:bg-gray-100'
+                        : 'bg-gray-900 text-white hover:bg-gray-800'
                       : 'bg-gray-600 text-gray-300 cursor-not-allowed'
                   }`}
                   disabled={!isEyeDropperSupported}
-                  title={!isEyeDropperSupported ? 'Not supported in your browser' : 'Click to pick color from screen'}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
@@ -872,19 +701,23 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
               </div>
 
               <div className="space-y-4">
-                <div 
-                  className="rounded-xl p-8 text-center transition-colors duration-300" 
+                <div
+                  className="rounded-xl p-8 text-center transition-colors duration-300"
                   style={{ backgroundColor: selectedColor.hex }}
                 >
-                  <h2 className="text-5xl font-bold mb-2" style={{ 
-                    color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff' 
-                  }}>
+                  <h2
+                    className="text-5xl font-bold mb-2"
+                    style={{ color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff' }}
+                  >
                     {selectedColor.hex}
                   </h2>
-                  <p className="text-lg" style={{ 
-                    color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff',
-                    opacity: 0.8
-                  }}>
+                  <p
+                    className="text-lg"
+                    style={{
+                      color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff',
+                      opacity: 0.8
+                    }}
+                  >
                     ≈ {lightValue > 70 ? 'Light' : lightValue > 30 ? 'Medium' : 'Dark'} Tone
                   </p>
                 </div>
@@ -892,14 +725,14 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { label: 'HEX', value: selectedColor.hex },
-                    { label: 'HSL', value: `${Math.round(hsl.h)}, ${Math.round(hsl.s)}, ${Math.round(hsl.l)}` },
+                    { label: 'HSL', value: `${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%` },
                     { label: 'RGB', value: `${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b}` },
                     { label: 'XYZ', value: `${xyz.x}, ${xyz.y}, ${xyz.z}` },
                     { label: 'CMYK', value: `${cmyk.c}, ${cmyk.m}, ${cmyk.y}, ${cmyk.k}` },
-                    { label: 'LUV', value: `58, -29, -37` },
                     { label: 'LAB', value: `${lab.l}, ${lab.a}, ${lab.b}` },
+                    { label: 'LUV', value: '58, -29, -37' },
                     { label: 'HWB', value: `${Math.round(hsl.h)}, 15, 25` }
-                  ].map(item => (
+                  ].map((item) => (
                     <div key={item.label} className={`${cardBg} rounded-lg p-4`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className={`text-sm ${secondaryText}`}>{item.label}</span>
@@ -936,9 +769,8 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
               <div className="mb-8">
                 <h3 className="text-xl font-bold mb-4">Shades</h3>
                 <p className={`mb-4 ${secondaryText}`}>Darker variations created by adding black to your base color.</p>
-                
                 <div className="flex gap-2 mb-2">
-                  {variations.shades.map(shade => (
+                  {variations.shades.map((shade) => (
                     <div key={shade.percent} className="flex-1 text-center">
                       <div className={`rounded px-2 py-1 text-xs font-medium mb-2 ${darkMode ? 'bg-white text-gray-900' : 'bg-gray-900 text-white'}`}>
                         {shade.percent}%
@@ -946,7 +778,6 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                     </div>
                   ))}
                 </div>
-                
                 <div className="flex rounded-lg overflow-hidden h-16">
                   {variations.shades.map((shade, i) => (
                     <div
@@ -954,7 +785,7 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                       className="flex-1 cursor-pointer hover:scale-105 transition-transform"
                       style={{ backgroundColor: `rgb(${shade.r}, ${shade.g}, ${shade.b})` }}
                       onClick={() => updateSelectedColor(shade.r, shade.g, shade.b)}
-                      title={`#${shade.r.toString(16).padStart(2,'0')}${shade.g.toString(16).padStart(2,'0')}${shade.b.toString(16).padStart(2,'0')}`}
+                      title={`#${shade.r.toString(16).padStart(2, '0')}${shade.g.toString(16).padStart(2,'0')}${shade.b.toString(16).padStart(2,'0')}`}
                     />
                   ))}
                 </div>
@@ -963,9 +794,8 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
               <div>
                 <h3 className="text-xl font-bold mb-4">Tints</h3>
                 <p className={`mb-4 ${secondaryText}`}>Lighter variations created by adding white to your base color.</p>
-                
                 <div className="flex gap-2 mb-2">
-                  {variations.tints.map(tint => (
+                  {variations.tints.map((tint) => (
                     <div key={tint.percent} className="flex-1 text-center">
                       <div className={`rounded px-2 py-1 text-xs font-medium mb-2 ${darkMode ? 'bg-white text-gray-900' : 'bg-gray-900 text-white'}`}>
                         {tint.percent}%
@@ -973,7 +803,6 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
                     </div>
                   ))}
                 </div>
-                
                 <div className="flex rounded-lg overflow-hidden h-16">
                   {variations.tints.map((tint, i) => (
                     <div

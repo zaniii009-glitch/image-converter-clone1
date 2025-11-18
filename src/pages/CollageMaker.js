@@ -7,17 +7,15 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
   const [layout, setLayout] = useState('3x3');
   const [spacing, setSpacing] = useState(30);
   const [bgColor, setBgColor] = useState('#FFFFFF');
-  const [isCreating, setIsCreating] = useState(false);
 
   const fileInputRef = useRef(null);
-  const canvasRef = useRef(null);
 
-  // تصاویر اپ لوڈ کریں
+  // Handle file upload
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'));
     if (imageFiles.length === 0) {
       alert('Please select image files only.');
       return;
@@ -26,7 +24,7 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
     const newImages = [];
     let loadedCount = 0;
 
-    imageFiles.forEach(file => {
+    imageFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
@@ -36,11 +34,11 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
             src: event.target?.result,
             file,
             width: img.width,
-            height: img.height
+            height: img.height,
           });
           loadedCount++;
           if (loadedCount === imageFiles.length) {
-            setImages(prev => [...prev, ...newImages].slice(0, 9));
+            setImages((prev) => [...prev, ...newImages].slice(0, 9));
           }
         };
         img.src = event.target?.result;
@@ -49,13 +47,12 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
     });
   };
 
-  // تصویر ہٹائیں
+  // Remove an image
   const removeImage = (id) => {
-    setImages(prev => prev.filter(img => img.id !== id));
-    setCollageImage(null);
+    setImages((prev) => prev.filter((img) => img.id !== id));
   };
 
-  // لی آؤٹ کے مطابق کولیج بنائیں — فوری اپ ڈیٹ
+  // Generate collage preview
   const createCollage = async () => {
     if (images.length === 0) {
       setCollageImage(null);
@@ -83,7 +80,7 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
       for (let i = 0; i < Math.min(images.length, totalCells); i++) {
         const img = new Image();
         img.src = images[i].src;
-        await new Promise(resolve => {
+        await new Promise((resolve) => {
           img.onload = () => {
             const col = i % cols;
             const row = Math.floor(i / cols);
@@ -103,7 +100,7 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
     }
   };
 
-  // ڈاؤن لوڈ کریں
+  // Download collage
   const handleDownload = () => {
     if (!collageImage) return;
     const link = document.createElement('a');
@@ -112,7 +109,7 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
     link.click();
   };
 
-  // ری سیٹ کریں
+  // Reset all
   const handleReset = () => {
     setImages([]);
     setCollageImage(null);
@@ -123,9 +120,10 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
 
   const presetColors = [
     '#FFFFFF', '#000000', '#F5F5F5', '#4F46E5', '#10B981', '#F59E0B',
-    '#EF4444', '#EC4899'
+    '#EF4444', '#EC4899',
   ];
 
+  // Auto-update collage when inputs change
   useEffect(() => {
     if (images.length > 0) {
       createCollage();
@@ -136,15 +134,13 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
 
   return (
     <div className={`min-h-screen p-6 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      
-      {/* ✅ صرف ٹیکسٹ — بغیر کسی کنٹینر/باکس کے */}
-      <h1 className="text-3xl font-bold text-center mb-2">🖼️ Collage Maker</h1>
+      <h1 className="text-3xl font-bold text-center mb-2">Collage Maker</h1>
       <p className={`text-center mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
         Create a beautiful photo collage from your favorite images.
       </p>
 
       <div className="max-w-7xl mx-auto flex gap-8">
-        {/* بائیں جانب کنٹرولز */}
+        {/* Controls Panel */}
         <div className={`w-80 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
           <label className="w-full bg-green-500 text-white py-2.5 rounded-lg hover:bg-green-600 transition-colors cursor-pointer text-center mb-4 flex items-center justify-center gap-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,7 +195,7 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
                     darkMode ? '#1f2937' : '#f9fafb'
                   } ${spacing}% , ${
                     darkMode ? '#1f2937' : '#f9fafb'
-                  } 100%)`
+                  } 100%)`,
                 }}
               />
               <span className="text-sm">{spacing}px</span>
@@ -260,12 +256,12 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
               disabled={images.length === 0}
               className={`flex-1 py-2.5 rounded-lg font-medium transition-colors ${
                 images.length > 0
-                  ? (darkMode
-                      ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300')
-                  : (darkMode
-                      ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+                  ? darkMode
+                    ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  : darkMode
+                  ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
             >
               Reset
@@ -285,54 +281,52 @@ const CollageMaker = ({ darkMode, setDarkMode }) => {
           </button>
         </div>
 
-        {/* دائیں جانب پری ویو */}
-        <div className="flex-1">
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6`}>
-            {images.length === 0 ? (
-              <div className="text-center py-8">
-                <svg className="w-16 h-16 mx-auto mb-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <h3 className="text-xl font-semibold mb-2">No images added yet</h3>
-                <p className="text-gray-500 dark:text-gray-400">Upload images to create your collage</p>
-              </div>
-            ) : (
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Selected Photos ({images.length})</h3>
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  {images.map((img) => (
-                    <div key={img.id} className="relative group">
-                      <img
-                        src={img.src}
-                        alt="Preview"
-                        className="w-full h-20 object-cover rounded border border-gray-300 dark:border-gray-600"
-                      />
-                      <button
-                        onClick={() => removeImage(img.id)}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {collageImage && (
-                  <div className="mt-4">
-                    <h3 className="text-sm font-semibold mb-2">✅ Collage Preview</h3>
-                    <div className="flex justify-center">
-                      <img
-                        src={collageImage}
-                        alt="Collage"
-                        className="max-w-full h-auto rounded border border-gray-300 dark:border-gray-600"
-                        style={{ maxHeight: '400px' }}
-                      />
-                    </div>
+        {/* Preview Area */}
+        <div className={`flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6`}>
+          {images.length === 0 ? (
+            <div className="text-center py-8">
+              <svg className="w-16 h-16 mx-auto mb-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h3 className="text-xl font-semibold mb-2">No images added yet</h3>
+              <p className="text-gray-500 dark:text-gray-400">Upload images to create your collage</p>
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-sm font-semibold mb-3">Selected Photos ({images.length})</h3>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {images.map((img) => (
+                  <div key={img.id} className="relative group">
+                    <img
+                      src={img.src}
+                      alt="Preview"
+                      className="w-full h-20 object-cover rounded border border-gray-300 dark:border-gray-600"
+                    />
+                    <button
+                      onClick={() => removeImage(img.id)}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
                   </div>
-                )}
+                ))}
               </div>
-            )}
-          </div>
+
+              {collageImage && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-semibold mb-2">✅ Collage Preview</h3>
+                  <div className="flex justify-center">
+                    <img
+                      src={collageImage}
+                      alt="Collage"
+                      className="max-w-full h-auto rounded border border-gray-300 dark:border-gray-600"
+                      style={{ maxHeight: '400px' }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
