@@ -1,5 +1,6 @@
 // src/pages/ColorPicker.jsx
 import React, { useState, useRef, useEffect } from 'react';
+import { CommonHeader } from '../components/CommonHeader';
 
 const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   // State
@@ -30,11 +31,10 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   const fileInputRef = useRef(null);
   const imageRef = useRef(null);
 
-  // Theme classes
+  // Theme classes for main content
   const bgColor = darkMode ? 'bg-gray-900' : 'bg-gray-50';
   const textColor = darkMode ? 'text-white' : 'text-gray-900';
   const secondaryText = darkMode ? 'text-gray-400' : 'text-gray-600';
-  const mutedText = darkMode ? 'text-gray-500' : 'text-gray-500';
   const cardBg = darkMode ? 'bg-gray-800' : 'bg-white';
   const inputBg = darkMode ? 'bg-gray-900' : 'bg-gray-100';
   const border = darkMode ? 'border-gray-700' : 'border-gray-300';
@@ -435,391 +435,453 @@ const ColorPicker = ({ darkMode = true, setDarkMode }) => {
   const variations = getColorVariations();
 
   return (
-    <div className={`min-h-screen ${bgColor} ${textColor}`}>
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-5xl font-bold text-center mb-3">
-            {activeTab === 'image' ? 'Image Color Picker' : 'Color Picker & Generator'}
-          </h1>
-          <p className={`text-center text-lg ${secondaryText}`}>
-            {activeTab === 'image'
-              ? 'Upload your image and click anywhere to extract colors instantly.'
-              : 'Pick colors interactively, generate variations, and get all color codes.'}
-          </p>
-        </header>
+    <>
+      <CommonHeader darkMode={darkMode} setDarkMode={setDarkMode} />
+      <div className={`min-h-screen ${bgColor} ${textColor} pt-24`}>
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Header */}
+          <header className="mb-8">
+            <h1 className="text-5xl font-bold text-center mb-3">
+              {activeTab === 'image' ? 'Image Color Picker' : 'Color Picker & Generator'}
+            </h1>
+            <p className={`text-center text-lg ${secondaryText}`}>
+              {activeTab === 'image'
+                ? 'Upload your image and click anywhere to extract colors instantly.'
+                : 'Pick colors interactively, generate variations, and get all color codes.'}
+            </p>
+          </header>
 
-        {/* Tabs */}
-        <div className={`flex justify-center gap-8 mb-8 border-b ${border}`}>
-          <button
-            onClick={() => setActiveTab('image')}
-            className={`pb-3 px-4 font-medium transition-all ${
-              activeTab === 'image'
-                ? `${textColor} border-b-2 border-cyan-500`
-                : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
-            }`}
-          >
-            Pick color from image
-          </button>
-          <button
-            onClick={() => setActiveTab('picker')}
-            className={`pb-3 px-4 font-medium transition-all ${
-              activeTab === 'picker'
-                ? `${textColor} border-b-2 border-cyan-500`
-                : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
-            }`}
-          >
-            Color Picker
-          </button>
-        </div>
+          {/* Tabs */}
+          <div className={`flex justify-center gap-8 mb-8 border-b ${border}`}>
+            <button
+              onClick={() => setActiveTab('image')}
+              className={`pb-3 px-4 font-medium transition-all ${
+                activeTab === 'image'
+                  ? `${textColor} border-b-2 border-cyan-500`
+                  : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
+              }`}
+            >
+              Pick color from image
+            </button>
+            <button
+              onClick={() => setActiveTab('picker')}
+              className={`pb-3 px-4 font-medium transition-all ${
+                activeTab === 'picker'
+                  ? `${textColor} border-b-2 border-cyan-500`
+                  : `${secondaryText} hover:${darkMode ? 'text-gray-300' : 'text-gray-800'}`
+              }`}
+            >
+              Color Picker
+            </button>
+          </div>
 
-        {/* Image Tab */}
-        {activeTab === 'image' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-lg">Image</h3>
-                {images.length > 0 && (
-                  <button
+          {/* Image Tab */}
+          {activeTab === 'image' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-lg">Image</h3>
+                  {images.length > 0 && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`px-4 py-2 bg-cyan-500 text-white rounded-lg ${buttonHover} transition-colors text-sm`}
+                    >
+                      + Add More Images
+                    </button>
+                  )}
+                </div>
+
+                {images.length === 0 ? (
+                  <div
+                    className={`border-4 border-dashed rounded-xl p-16 text-center cursor-pointer transition-all ${
+                      isDragging ? `${dragBorderColor} ${dragActiveBg}` : `${border} ${dragAreaBg}`
+                    }`}
+                    onDrop={handleDrop}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragEnter={(e) => { e.preventDefault(); setDragCounter((prev) => prev + 1); setIsDragging(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); setDragCounter((prev) => { const n = prev - 1; if (n === 0) setIsDragging(false); return n; }); }}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`px-4 py-2 bg-cyan-500 text-white rounded-lg ${buttonHover} transition-colors text-sm`}
                   >
-                    + Add More Images
-                  </button>
+                    <svg className={`w-24 h-24 mx-auto mb-4 ${iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p className={`text-xl font-bold mb-2 ${textColor}`}>
+                      {isDragging ? 'Drop your image here!' : 'Drag & drop image(s)'}
+                    </p>
+                    <p className={secondaryText}>or click to browse (multiple files supported)</p>
+                  </div>
+                ) : (
+                  <div>
+                    {images.length > 1 && (
+                      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                        {images.map((img, index) => (
+                          <div key={index} className="relative flex-shrink-0">
+                            <div
+                              onClick={() => switchImage(index)}
+                              className={`w-20 h-20 rounded-lg cursor-pointer overflow-hidden border-2 transition-all ${
+                                index === currentImageIndex
+                                  ? 'border-cyan-500 scale-105'
+                                  : `${border} hover:${darkMode ? 'border-gray-500' : 'border-gray-400'}`
+                              }`}
+                            >
+                              <img src={img.src} alt={img.name} className="w-full h-full object-cover" />
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                            >
+                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="relative">
+                      {imageSrc && (
+                        <canvas
+                          ref={canvasRef}
+                          onClick={handleCanvasClick}
+                          className={`w-full cursor-crosshair rounded-xl border-2 ${border}`}
+                        />
+                      )}
+                      {images.length === 1 && (
+                        <button
+                          onClick={() => removeImage(0)}
+                          className="absolute top-4 right-4 p-3 bg-red-500 rounded-full hover:bg-red-600"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+
+                    {images.length > 0 && (
+                      <div className={`mt-3 text-sm ${secondaryText}`}>
+                        {images[currentImageIndex]?.name} ({currentImageIndex + 1} of {images.length})
+                      </div>
+                    )}
+                  </div>
                 )}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                />
               </div>
 
-              {images.length === 0 ? (
-                <div
-                  className={`border-4 border-dashed rounded-xl p-16 text-center cursor-pointer transition-all ${
-                    isDragging ? `${dragBorderColor} ${dragActiveBg}` : `${border} ${dragAreaBg}`
-                  }`}
-                  onDrop={handleDrop}
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragEnter={(e) => { e.preventDefault(); setDragCounter((prev) => prev + 1); setIsDragging(true); }}
-                  onDragLeave={(e) => { e.preventDefault(); setDragCounter((prev) => { const n = prev - 1; if (n === 0) setIsDragging(false); return n; }); }}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <svg className={`w-24 h-24 mx-auto mb-4 ${iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <p className={`text-xl font-bold mb-2 ${textColor}`}>
-                    {isDragging ? 'Drop your image here!' : 'Drag & drop image(s)'}
-                  </p>
-                  <p className={secondaryText}>or click to browse (multiple files supported)</p>
-                </div>
-              ) : (
-                <div>
-                  {images.length > 1 && (
-                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-                      {images.map((img, index) => (
-                        <div key={index} className="relative flex-shrink-0">
-                          <div
-                            onClick={() => switchImage(index)}
-                            className={`w-20 h-20 rounded-lg cursor-pointer overflow-hidden border-2 transition-all ${
-                              index === currentImageIndex
-                                ? 'border-cyan-500 scale-105'
-                                : `${border} hover:${darkMode ? 'border-gray-500' : 'border-gray-400'}`
-                            }`}
-                          >
-                            <img src={img.src} alt={img.name} className="w-full h-full object-cover" />
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); removeImage(index); }}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                          >
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              <div>
+                <h3 className="font-semibold mb-3 text-lg">Selected Color</h3>
+                <div className={`${cardBg} rounded-xl p-4`}>
+                  <div className="w-full h-40 rounded-lg mb-4" style={{ backgroundColor: selectedColor.hex }} />
+                  <div className="space-y-2">
+                    {[
+                      { label: 'HEX', value: selectedColor.hex },
+                      { label: 'RGB', value: `${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b}` },
+                      { label: 'HSL', value: `${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%` },
+                      { label: 'CMYK', value: `${cmyk.c}, ${cmyk.m}, ${cmyk.y}, ${cmyk.k}` }
+                    ].map((item) => (
+                      <div key={item.label} className={`flex items-center justify-between ${inputBg} rounded p-2`}>
+                        <span className={`text-sm ${secondaryText}`}>{item.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm">{item.value}</span>
+                          <button onClick={() => copyToClipboard(item.value)} className={`p-1 ${hoverBg} rounded`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                             </svg>
                           </button>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {palette.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold mb-2">Palette</h4>
+                    <div className="grid grid-cols-4 gap-2">
+                      {palette.map((color, i) => (
+                        <div
+                          key={i}
+                          className="aspect-square rounded-lg cursor-pointer hover:scale-110 transition-transform"
+                          style={{ backgroundColor: color }}
+                          onClick={() => handlePaletteClick(color)}
+                        />
                       ))}
                     </div>
-                  )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-                  <div className="relative">
-                    {imageSrc && (
-                      <canvas
-                        ref={canvasRef}
-                        onClick={handleCanvasClick}
-                        className={`w-full cursor-crosshair rounded-xl border-2 ${border}`}
-                      />
-                    )}
-                    {images.length === 1 && (
-                      <button
-                        onClick={() => removeImage(0)}
-                        className="absolute top-4 right-4 p-3 bg-red-500 rounded-full hover:bg-red-600"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
+          {/* Picker Tab */}
+          {activeTab === 'picker' && (
+            <div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div className={`${cardBg} rounded-xl p-6`}>
+                  <h3 className="text-xl font-bold mb-4">Color Conversion</h3>
+
+                  <div
+                    ref={colorSquareRef}
+                    className="relative w-full aspect-square bg-white rounded-lg mb-4 cursor-crosshair select-none"
+                    style={{
+                      background: `linear-gradient(to bottom, transparent, black), linear-gradient(to right, white, hsl(${hueValue}, 100%, 50%))`,
+                      touchAction: 'none'
+                    }}
+                    onPointerDown={onPointerDown}
+                  >
+                    <div
+                      ref={indicatorRef}
+                      className="absolute w-6 h-6 rounded-full pointer-events-none transition-all"
+                      style={{
+                        left: `${satValue}%`,
+                        top: `${100 - lightValue}%`,
+                        transform: 'translate(-50%, -50%)',
+                        backgroundColor: selectedColor.hex,
+                        border: lightValue > 60 ? '2px solid rgba(0,0,0,0.6)' : '2px solid rgba(255,255,255,0.9)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.35), 0 0 0 2px rgba(0,0,0,0.05)'
+                      }}
+                    />
                   </div>
 
-                  {images.length > 0 && (
-                    <div className={`mt-3 text-sm ${secondaryText}`}>
-                      {images[currentImageIndex]?.name} ({currentImageIndex + 1} of {images.length})
-                    </div>
-                  )}
-                </div>
-              )}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageUpload}
-                accept="image/*"
-                multiple
-                className="hidden"
-              />
-            </div>
+                  <div className="mb-4">
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      value={hueValue}
+                      onChange={handleHueChange}
+                      className="w-full h-3 rounded-lg appearance-none cursor-pointer"
+                      style={{
+                        background: 'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)'
+                      }}
+                    />
+                  </div>
 
-            <div>
-              <h3 className="font-semibold mb-3 text-lg">Selected Color</h3>
-              <div className={`${cardBg} rounded-xl p-4`}>
-                <div className="w-full h-40 rounded-lg mb-4" style={{ backgroundColor: selectedColor.hex }} />
-                <div className="space-y-2">
-                  {[
-                    { label: 'HEX', value: selectedColor.hex },
-                    { label: 'RGB', value: `${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b}` },
-                    { label: 'HSL', value: `${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%` },
-                    { label: 'CMYK', value: `${cmyk.c}, ${cmyk.m}, ${cmyk.y}, ${cmyk.k}` }
-                  ].map((item) => (
-                    <div key={item.label} className={`flex items-center justify-between ${inputBg} rounded p-2`}>
-                      <span className={`text-sm ${secondaryText}`}>{item.label}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm">{item.value}</span>
-                        <button onClick={() => copyToClipboard(item.value)} className={`p-1 ${hoverBg} rounded`}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className={secondaryText}>HEX</span>
+                    <input
+                      type="text"
+                      value={selectedColor.hex}
+                      onChange={(e) => {
+                        const hex = e.target.value;
+                        if (/^#[0-9A-F]{6}$/i.test(hex)) {
+                          const r = parseInt(hex.substr(1, 2), 16);
+                          const g = parseInt(hex.substr(3, 2), 16);
+                          const b = parseInt(hex.substr(5, 2), 16);
+                          updateSelectedColor(r, g, b);
+                        }
+                      }}
+                      className={`flex-1 ${inputBg} px-3 py-2 rounded font-mono ${textColor}`}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handlePickFromScreen}
+                    className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                      isEyeDropperSupported
+                        ? darkMode
+                          ? 'bg-white text-gray-900 hover:bg-gray-100'
+                          : 'bg-gray-900 text-white hover:bg-gray-800'
+                        : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                    }`}
+                    disabled={!isEyeDropperSupported}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                    </svg>
+                    Pick from screen
+                    {!isEyeDropperSupported && <span className="text-xs">(Not supported)</span>}
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div
+                    className="rounded-xl p-8 text-center transition-colors duration-300"
+                    style={{ backgroundColor: selectedColor.hex }}
+                  >
+                    <h2
+                      className="text-5xl font-bold mb-2"
+                      style={{ color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff' }}
+                    >
+                      {selectedColor.hex}
+                    </h2>
+                    <p
+                      className="text-lg"
+                      style={{
+                        color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff',
+                        opacity: 0.8
+                      }}
+                    >
+                      ≈ {lightValue > 70 ? 'Light' : lightValue > 30 ? 'Medium' : 'Dark'} Tone
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'HEX', value: selectedColor.hex },
+                      { label: 'HSL', value: `${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%` },
+                      { label: 'RGB', value: `${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b}` },
+                      { label: 'XYZ', value: `${xyz.x}, ${xyz.y}, ${xyz.z}` },
+                      { label: 'CMYK', value: `${cmyk.c}, ${cmyk.m}, ${cmyk.y}, ${cmyk.k}` },
+                      { label: 'LAB', value: `${lab.l}, ${lab.a}, ${lab.b}` },
+                      { label: 'LUV', value: '58, -29, -37' },
+                      { label: 'HWB', value: `${Math.round(hsl.h)}, 15, 25` }
+                    ].map((item) => (
+                      <div key={item.label} className={`${cardBg} rounded-lg p-4`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-sm ${secondaryText}`}>{item.label}</span>
+                          <button onClick={() => copyToClipboard(item.value)} className={`p-1 ${hoverBg} rounded`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        </div>
+                        <p className="font-mono text-sm">{item.value}</p>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {palette.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="font-semibold mb-2">Palette</h4>
-                  <div className="grid grid-cols-4 gap-2">
-                    {palette.map((color, i) => (
+              <div className={`${cardBg} rounded-xl p-8`}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded" style={{ backgroundColor: selectedColor.hex }}></div>
+                  <h2 className="text-2xl font-bold">Variations</h2>
+                </div>
+
+                <p className={`mb-6 ${secondaryText}`}>
+                  The purpose of this section is to accurately produce tints (pure white added) and shades
+                  (pure black added) of your selected color in 10% increments.
+                </p>
+
+                <div className={`${inputBg} rounded-lg p-4 mb-6`}>
+                  <p className="text-sm">
+                    <strong className={darkMode ? 'text-white' : 'text-gray-900'}>Pro Tip:</strong> Use shades for hover states and shadows, tints for highlights and backgrounds.
+                  </p>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold mb-4">Shades</h3>
+                  <p className={`mb-4 ${secondaryText}`}>Darker variations created by adding black to your base color.</p>
+                  <div className="flex gap-2 mb-2">
+                    {variations.shades.map((shade) => (
+                      <div key={shade.percent} className="flex-1 text-center">
+                        <div className={`rounded px-2 py-1 text-xs font-medium mb-2 ${darkMode ? 'bg-white text-gray-900' : 'bg-gray-900 text-white'}`}>
+                          {shade.percent}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex rounded-lg overflow-hidden h-16">
+                    {variations.shades.map((shade, i) => (
                       <div
                         key={i}
-                        className="aspect-square rounded-lg cursor-pointer hover:scale-110 transition-transform"
-                        style={{ backgroundColor: color }}
-                        onClick={() => handlePaletteClick(color)}
+                        className="flex-1 cursor-pointer hover:scale-105 transition-transform"
+                        style={{ backgroundColor: `rgb(${shade.r}, ${shade.g}, ${shade.b})` }}
+                        onClick={() => updateSelectedColor(shade.r, shade.g, shade.b)}
+                        title={`#${shade.r.toString(16).padStart(2, '0')}${shade.g.toString(16).padStart(2,'0')}${shade.b.toString(16).padStart(2,'0')}`}
                       />
                     ))}
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
-      
-        {/* Picker Tab */}
-        {activeTab === 'picker' && (
-          <div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              <div className={`${cardBg} rounded-xl p-6`}>
-                <h3 className="text-xl font-bold mb-4">Color Conversion</h3>
 
-                <div
-                  ref={colorSquareRef}
-                  className="relative w-full aspect-square bg-white rounded-lg mb-4 cursor-crosshair select-none"
-                  style={{
-                    background: `linear-gradient(to bottom, transparent, black), linear-gradient(to right, white, hsl(${hueValue}, 100%, 50%))`,
-                    touchAction: 'none'
-                  }}
-                  onPointerDown={onPointerDown}
-                >
-                  <div
-                    ref={indicatorRef}
-                    className="absolute w-6 h-6 rounded-full pointer-events-none transition-all"
-                    style={{
-                      left: `${satValue}%`,
-                      top: `${100 - lightValue}%`,
-                      transform: 'translate(-50%, -50%)',
-                      backgroundColor: selectedColor.hex,
-                      border: lightValue > 60 ? '2px solid rgba(0,0,0,0.6)' : '2px solid rgba(255,255,255,0.9)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.35), 0 0 0 2px rgba(0,0,0,0.05)'
-                    }}
-                  />
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Tints</h3>
+                  <p className={`mb-4 ${secondaryText}`}>Lighter variations created by adding white to your base color.</p>
+                  <div className="flex gap-2 mb-2">
+                    {variations.tints.map((tint) => (
+                      <div key={tint.percent} className="flex-1 text-center">
+                        <div className={`rounded px-2 py-1 text-xs font-medium mb-2 ${darkMode ? 'bg-white text-gray-900' : 'bg-gray-900 text-white'}`}>
+                          {tint.percent}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex rounded-lg overflow-hidden h-16">
+                    {variations.tints.map((tint, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 cursor-pointer hover:scale-105 transition-transform"
+                        style={{ backgroundColor: `rgb(${tint.r}, ${tint.g}, ${tint.b})` }}
+                        onClick={() => updateSelectedColor(tint.r, tint.g, tint.b)}
+                        title={`#${tint.r.toString(16).padStart(2,'0')}${tint.g.toString(16).padStart(2,'0')}${tint.b.toString(16).padStart(2,'0')}`} />
+                    ))}
+                  </div>
                 </div>
-
-                <div className="mb-4">
-                  <input
-                    type="range"
-                    min="0"
-                    max="360"
-                    value={hueValue}
-                    onChange={handleHueChange}
-                    className="w-full h-3 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                      background: 'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)'
-                    }}
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <span className={secondaryText}>HEX</span>
-                  <input
-                    type="text"
-                    value={selectedColor.hex}
-                    onChange={(e) => {
-                      const hex = e.target.value;
-                      if (/^#[0-9A-F]{6}$/i.test(hex)) {
-                        const r = parseInt(hex.substr(1, 2), 16);
-                        const g = parseInt(hex.substr(3, 2), 16);
-                        const b = parseInt(hex.substr(5, 2), 16);
-                        updateSelectedColor(r, g, b);
-                      }
-                    }}
-                    className={`flex-1 ${inputBg} px-3 py-2 rounded font-mono ${textColor}`}
-                  />
-                </div>
-
-                <button
-                  onClick={handlePickFromScreen}
-                  className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                    isEyeDropperSupported
-                      ? darkMode
-                        ? 'bg-white text-gray-900 hover:bg-gray-100'
-                        : 'bg-gray-900 text-white hover:bg-gray-800'
-                      : 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                  }`}
-                  disabled={!isEyeDropperSupported}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                  </svg>
-                  Pick from screen
-                  {!isEyeDropperSupported && <span className="text-xs">(Not supported)</span>}
-                </button>
               </div>
+            </div>
+          )}
 
-              <div className="space-y-4">
-                <div
-                  className="rounded-xl p-8 text-center transition-colors duration-300"
-                  style={{ backgroundColor: selectedColor.hex }}
-                >
-                  <h2
-                    className="text-5xl font-bold mb-2"
-                    style={{ color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff' }}
-                  >
-                    {selectedColor.hex}
-                  </h2>
-                  <p
-                    className="text-lg"
-                    style={{
-                      color: lightValue > 50 ? (darkMode ? '#000000' : '#000000') : '#ffffff',
-                      opacity: 0.8
-                    }}
-                  >
-                    ≈ {lightValue > 70 ? 'Light' : lightValue > 30 ? 'Medium' : 'Dark'} Tone
+          {/* =============== DYNAMIC FOOTER (BASED ON ACTIVE TAB + DARK MODE) =============== */}
+        </div>
+
+        <footer className={`${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'} w-full py-12 px-6 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'} mt-12`}>
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+              {/* Column 1: Dynamic based on activeTab */}
+              {activeTab === 'image' ? (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Pick color from image</h3>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Upload any image and instantly extract precise color codes by clicking anywhere on it. Supports HEX, RGB, HSL, CMYK, and more.
                   </p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: 'HEX', value: selectedColor.hex },
-                    { label: 'HSL', value: `${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%` },
-                    { label: 'RGB', value: `${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b}` },
-                    { label: 'XYZ', value: `${xyz.x}, ${xyz.y}, ${xyz.z}` },
-                    { label: 'CMYK', value: `${cmyk.c}, ${cmyk.m}, ${cmyk.y}, ${cmyk.k}` },
-                    { label: 'LAB', value: `${lab.l}, ${lab.a}, ${lab.b}` },
-                    { label: 'LUV', value: '58, -29, -37' },
-                    { label: 'HWB', value: `${Math.round(hsl.h)}, 15, 25` }
-                  ].map((item) => (
-                    <div key={item.label} className={`${cardBg} rounded-lg p-4`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-sm ${secondaryText}`}>{item.label}</span>
-                        <button onClick={() => copyToClipboard(item.value)} className={`p-1 ${hoverBg} rounded`}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                      </div>
-                      <p className="font-mono text-sm">{item.value}</p>
-                    </div>
-                  ))}
+              ) : (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Color Picker</h3>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Select any hue, saturation, and lightness to generate accurate color codes in multiple formats including HEX, RGB, HSL, CMYK, XYZ, LAB, and more.
+                  </p>
                 </div>
-              </div>
-            </div>
+              )}
 
-            <div className={`${cardBg} rounded-xl p-8`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded" style={{ backgroundColor: selectedColor.hex }}></div>
-                <h2 className="text-2xl font-bold">Variations</h2>
-              </div>
-
-              <p className={`mb-6 ${secondaryText}`}>
-                The purpose of this section is to accurately produce tints (pure white added) and shades
-                (pure black added) of your selected color in 10% increments.
-              </p>
-
-              <div className={`${inputBg} rounded-lg p-4 mb-6`}>
-                <p className="text-sm">
-                  <strong className={darkMode ? 'text-white' : 'text-gray-900'}>Pro Tip:</strong> Use shades for hover states and shadows, tints for highlights and backgrounds.
-                </p>
-              </div>
-
-              <div className="mb-8">
-                <h3 className="text-xl font-bold mb-4">Shades</h3>
-                <p className={`mb-4 ${secondaryText}`}>Darker variations created by adding black to your base color.</p>
-                <div className="flex gap-2 mb-2">
-                  {variations.shades.map((shade) => (
-                    <div key={shade.percent} className="flex-1 text-center">
-                      <div className={`rounded px-2 py-1 text-xs font-medium mb-2 ${darkMode ? 'bg-white text-gray-900' : 'bg-gray-900 text-white'}`}>
-                        {shade.percent}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex rounded-lg overflow-hidden h-16">
-                  {variations.shades.map((shade, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 cursor-pointer hover:scale-105 transition-transform"
-                      style={{ backgroundColor: `rgb(${shade.r}, ${shade.g}, ${shade.b})` }}
-                      onClick={() => updateSelectedColor(shade.r, shade.g, shade.b)}
-                      title={`#${shade.r.toString(16).padStart(2, '0')}${shade.g.toString(16).padStart(2,'0')}${shade.b.toString(16).padStart(2,'0')}`}
-                    />
-                  ))}
-                </div>
-              </div>
-
+              {/* Column 2: Tools */}
               <div>
-                <h3 className="text-xl font-bold mb-4">Tints</h3>
-                <p className={`mb-4 ${secondaryText}`}>Lighter variations created by adding white to your base color.</p>
-                <div className="flex gap-2 mb-2">
-                  {variations.tints.map((tint) => (
-                    <div key={tint.percent} className="flex-1 text-center">
-                      <div className={`rounded px-2 py-1 text-xs font-medium mb-2 ${darkMode ? 'bg-white text-gray-900' : 'bg-gray-900 text-white'}`}>
-                        {tint.percent}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex rounded-lg overflow-hidden h-16">
-                  {variations.tints.map((tint, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 cursor-pointer hover:scale-105 transition-transform"
-                      style={{ backgroundColor: `rgb(${tint.r}, ${tint.g}, ${tint.b})` }}
-                      onClick={() => updateSelectedColor(tint.r, tint.g, tint.b)}
-                      title={`#${tint.r.toString(16).padStart(2,'0')}${tint.g.toString(16).padStart(2,'0')}${tint.b.toString(16).padStart(2,'0')}`}
-                    />
-                  ))}
-                </div>
+                <h3 className="text-lg font-semibold mb-4">Tools</h3>
+                <ul className="space-y-2 text-sm">
+                  <li><a href="/compress" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>Image Compressor</a></li>
+                  <li><a href="/crop" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>Crop Image</a></li>
+                  <li><a href="/resize" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>Resize Image</a></li>
+                  <li><a href="/color-picker" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>Color Picker</a></li>
+                  <li><a href="/collage-maker" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>Collage Maker</a></li>
+                </ul>
+              </div>
+
+              {/* Column 3: More Tools */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">More Tools</h3>
+                <ul className="space-y-2 text-sm">
+                  <li><a href="/png-converter" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>PNG Converter</a></li>
+                  <li><a href="/jpg-converter" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>JPG Converter</a></li>
+                  <li><a href="/webp-converter" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>WEBP Converter</a></li>
+                  <li><a href="/heic-converter" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>HEIC Converter</a></li>
+                </ul>
+              </div>
+
+              {/* Column 4: Resources */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Resources</h3>
+                <ul className="space-y-2 text-sm">
+                  <li><a href="/faq" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>FAQ</a></li>
+                  <li><a href="/privacy-policy" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>Privacy Policy</a></li>
+                  <li><a href="/terms" className={`${darkMode ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-600 hover:text-cyan-600'} transition-colors`}>Terms & Conditions</a></li>
+                </ul>
               </div>
             </div>
-          </div>
-        )}
+
+            {/* Copyright */}
+            <div className={`mt-8 pt-6 border-t ${darkMode ? 'border-gray-700 text-gray-500' : 'border-gray-200 text-gray-600'} text-center text-sm`}>
+              © {new Date().getFullYear()} Color Picker — All rights reserved
+            </div>
+          </footer>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { CommonHeader } from '../components/CommonHeader';
 
 const CropImage = ({ darkMode = false, setDarkMode = () => {} }) => {
   const [imageSrc, setImageSrc] = useState(null);
@@ -175,206 +176,209 @@ const CropImage = ({ darkMode = false, setDarkMode = () => {} }) => {
     : { width: 0, height: 0 };
 
   return (
-    <div className={`min-h-screen flex flex-col ${bgColor} ${textColor}`}>
-      <div className="flex-1 p-6">
-        <h1 className="text-3xl font-bold text-center mb-2">Image Crop</h1>
-        <p className={`text-center mb-6 ${secondaryText}`}>
-          Select and crop any area of your image with precision. Supports custom aspect ratios.
-        </p>
+    <>
+      <CommonHeader darkMode={darkMode} setDarkMode={setDarkMode} />
+      <div className={`min-h-screen flex flex-col ${bgColor} ${textColor} pt-24`}>
+        <div className="flex-1 p-6">
+          <h1 className="text-3xl font-bold text-center mb-2">Image Crop</h1>
+          <p className={`text-center mb-6 ${secondaryText}`}>
+            Select and crop any area of your image with precision. Supports custom aspect ratios.
+          </p>
 
-        <div className="max-w-7xl mx-auto flex gap-8">
-          <div className={`w-80 ${cardBg} rounded-xl shadow-lg p-6`}>
-            <h2 className="text-xl font-bold mb-6">Crop Rectangle</h2>
+          <div className="max-w-7xl mx-auto flex gap-8">
+            <div className={`w-80 ${cardBg} rounded-xl shadow-lg p-6`}>
+              <h2 className="text-xl font-bold mb-6">Crop Rectangle</h2>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Width (px)</label>
-                <input
-                  type="number"
-                  value={crop.width}
-                  onChange={(e) => updateCropSize(e.target.value ? parseInt(e.target.value) : 10, null)}
-                  className={`w-full px-3 py-2 rounded border ${inputBg}`}
-                  min="10"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Height (px)</label>
-                <input
-                  type="number"
-                  value={crop.height}
-                  onChange={(e) => updateCropSize(null, e.target.value ? parseInt(e.target.value) : 10)}
-                  className={`w-full px-3 py-2 rounded border ${inputBg}`}
-                  min="10"
-                />
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Aspect Ratio</label>
-              <select
-                value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
-                className={`w-full px-3 py-2 rounded border ${inputBg}`}
-              >
-                <option value="FreeForm">FreeForm</option>
-                <option value="1:1">1:1</option>
-                <option value="4:3">4:3</option>
-                <option value="16:9">16:9</option>
-              </select>
-            </div>
-
-            <h3 className="text-lg font-semibold mb-4">Crop Position</h3>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Position X (px)</label>
-                <input
-                  type="number"
-                  value={crop.x}
-                  onChange={(e) => updateCropPosition(e.target.value ? parseInt(e.target.value) : 0, crop.y)}
-                  className={`w-full px-3 py-2 rounded border ${inputBg}`}
-                  min="0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Position Y (px)</label>
-                <input
-                  type="number"
-                  value={crop.y}
-                  onChange={(e) => updateCropPosition(crop.x, e.target.value ? parseInt(e.target.value) : 0)}
-                  className={`w-full px-3 py-2 rounded border ${inputBg}`}
-                  min="0"
-                />
-              </div>
-            </div>
-
-            <div className={`p-4 mb-6 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-              <p className="text-sm">
-                <strong>Original Image:</strong> {imgSize.width} × {imgSize.height} px
-              </p>
-            </div>
-
-            <button
-              onClick={resetCrop}
-              className={`w-full py-2.5 rounded-lg mb-4 ${darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'} transition-colors font-medium`}
-            >
-              Reset
-            </button>
-
-            <button
-              onClick={handleCrop}
-              className="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-            >
-              Crop & Download →
-            </button>
-          </div>
-
-          <div className="flex-1">
-            {!imageSrc ? (
-              <div className={`${cardBg} rounded-xl shadow-lg p-12 text-center`}>
-                <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                <h3 className="text-2xl font-semibold mb-2">Upload an Image to Crop</h3>
-                <p className={`${secondaryText} mb-6`}>Supports JPG, PNG, WEBP, and more</p>
-                <label className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors text-lg">
-                  Choose Image
-                  <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" ref={fileInputRef} />
-                </label>
-              </div>
-            ) : (
-              <div className={`${cardBg} rounded-xl shadow-lg p-6`}>
-                <div
-                  ref={containerRef}
-                  className="relative inline-block border-2 border-dashed border-gray-300 dark:border-gray-600 overflow-hidden rounded-lg cursor-crosshair"
-                  style={{ maxWidth: '100%', backgroundColor: darkMode ? '#1f2937' : '#f9fafb' }}
-                  onMouseDown={handleMouseDown}
-                >
-                  <img ref={imageRef} src={imageSrc} alt="Original" style={{ display: 'block', maxWidth: '100%', userSelect: 'none' }} />
-
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: `${crop.y}px`, background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }} />
-                  <div style={{ position: 'absolute', top: `${crop.y + crop.height}px`, left: 0, width: '100%', height: `calc(100% - ${crop.y + crop.height}px)`, background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }} />
-                  <div style={{ position: 'absolute', top: `${crop.y}px`, left: 0, width: `${crop.x}px`, height: `${crop.height}px`, background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }} />
-                  <div style={{ position: 'absolute', top: `${crop.y}px`, right: 0, width: `calc(100% - ${crop.x + crop.width}px)`, height: `${crop.height}px`, background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }} />
-
-                  <div
-                    className="absolute border-2 border-indigo-500 pointer-events-auto"
-                    style={{
-                      left: `${crop.x}px`,
-                      top: `${crop.y}px`,
-                      width: `${crop.width}px`,
-                      height: `${crop.height}px`,
-                      cursor: isResizing ? 'grabbing' : 'move',
-                    }}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Width (px)</label>
+                  <input
+                    type="number"
+                    value={crop.width}
+                    onChange={(e) => updateCropSize(e.target.value ? parseInt(e.target.value) : 10, null)}
+                    className={`w-full px-3 py-2 rounded border ${inputBg}`}
+                    min="10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Height (px)</label>
+                  <input
+                    type="number"
+                    value={crop.height}
+                    onChange={(e) => updateCropSize(null, e.target.value ? parseInt(e.target.value) : 10)}
+                    className={`w-full px-3 py-2 rounded border ${inputBg}`}
+                    min="10"
                   />
                 </div>
               </div>
-            )}
 
-            {croppedImage && (
-              <div className={`mt-6 ${cardBg} rounded-xl shadow-lg p-6`}>
-                <h3 className="text-lg font-semibold mb-4">Cropped Result</h3>
-                <div className="flex justify-center mb-4">
-                  <img src={croppedImage} alt="Cropped" className="max-w-full h-auto rounded border border-gray-300 dark:border-gray-600" />
-                </div>
-                <button onClick={handleDownload} className="w-full bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition-colors font-medium">
-                  Download Cropped Image
-                </button>
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">Aspect Ratio</label>
+                <select
+                  value={aspectRatio}
+                  onChange={(e) => setAspectRatio(e.target.value)}
+                  className={`w-full px-3 py-2 rounded border ${inputBg}`}
+                >
+                  <option value="FreeForm">FreeForm</option>
+                  <option value="1:1">1:1</option>
+                  <option value="4:3">4:3</option>
+                  <option value="16:9">16:9</option>
+                </select>
               </div>
-            )}
+
+              <h3 className="text-lg font-semibold mb-4">Crop Position</h3>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Position X (px)</label>
+                  <input
+                    type="number"
+                    value={crop.x}
+                    onChange={(e) => updateCropPosition(e.target.value ? parseInt(e.target.value) : 0, crop.y)}
+                    className={`w-full px-3 py-2 rounded border ${inputBg}`}
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Position Y (px)</label>
+                  <input
+                    type="number"
+                    value={crop.y}
+                    onChange={(e) => updateCropPosition(crop.x, e.target.value ? parseInt(e.target.value) : 0)}
+                    className={`w-full px-3 py-2 rounded border ${inputBg}`}
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className={`p-4 mb-6 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                <p className="text-sm">
+                  <strong>Original Image:</strong> {imgSize.width} × {imgSize.height} px
+                </p>
+              </div>
+
+              <button
+                onClick={resetCrop}
+                className={`w-full py-2.5 rounded-lg mb-4 ${darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'} transition-colors font-medium`}
+              >
+                Reset
+              </button>
+
+              <button
+                onClick={handleCrop}
+                className="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+              >
+                Crop & Download →
+              </button>
+            </div>
+
+            <div className="flex-1">
+              {!imageSrc ? (
+                <div className={`${cardBg} rounded-xl shadow-lg p-12 text-center`}>
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                  <h3 className="text-2xl font-semibold mb-2">Upload an Image to Crop</h3>
+                  <p className={`${secondaryText} mb-6`}>Supports JPG, PNG, WEBP, and more</p>
+                  <label className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors text-lg">
+                    Choose Image
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" ref={fileInputRef} />
+                  </label>
+                </div>
+              ) : (
+                <div className={`${cardBg} rounded-xl shadow-lg p-6`}>
+                  <div
+                    ref={containerRef}
+                    className="relative inline-block border-2 border-dashed border-gray-300 dark:border-gray-600 overflow-hidden rounded-lg cursor-crosshair"
+                    style={{ maxWidth: '100%', backgroundColor: darkMode ? '#1f2937' : '#f9fafb' }}
+                    onMouseDown={handleMouseDown}
+                  >
+                    <img ref={imageRef} src={imageSrc} alt="Original" style={{ display: 'block', maxWidth: '100%', userSelect: 'none' }} />
+
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: `${crop.y}px`, background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', top: `${crop.y + crop.height}px`, left: 0, width: '100%', height: `calc(100% - ${crop.y + crop.height}px)`, background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', top: `${crop.y}px`, left: 0, width: `${crop.x}px`, height: `${crop.height}px`, background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', top: `${crop.y}px`, right: 0, width: `calc(100% - ${crop.x + crop.width}px)`, height: `${crop.height}px`, background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }} />
+
+                    <div
+                      className="absolute border-2 border-indigo-500 pointer-events-auto"
+                      style={{
+                        left: `${crop.x}px`,
+                        top: `${crop.y}px`,
+                        width: `${crop.width}px`,
+                        height: `${crop.height}px`,
+                        cursor: isResizing ? 'grabbing' : 'move',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {croppedImage && (
+                <div className={`mt-6 ${cardBg} rounded-xl shadow-lg p-6`}>
+                  <h3 className="text-lg font-semibold mb-4">Cropped Result</h3>
+                  <div className="flex justify-center mb-4">
+                    <img src={croppedImage} alt="Cropped" className="max-w-full h-auto rounded border border-gray-300 dark:border-gray-600" />
+                  </div>
+                  <button onClick={handleDownload} className="w-full bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition-colors font-medium">
+                    Download Cropped Image
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* FOOTER */}
-      <footer className={`${darkMode ? 'bg-gray-900 text-gray-300' : 'bg-white text-gray-700'} border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'} mt-12`}>
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div>
-              <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Crop Image</h3>
-              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Crop and trim your images precisely with our easy-to-use online cropping tool.
+        {/* FOOTER */}
+        <footer className={`${darkMode ? 'bg-gray-900 text-gray-300' : 'bg-white text-gray-700'} border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'} mt-12`}>
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div>
+                <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Crop Image</h3>
+                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Crop and trim your images precisely with our easy-to-use online cropping tool.
+                </p>
+              </div>
+
+              <div>
+                <h4 className={`font-semibold text-sm mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Tools</h4>
+                <ul className="space-y-1.5">
+                  <li><a href="/image-compressor" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Image Compressor</a></li>
+                  <li><a href="/crop-image" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Crop Image</a></li>
+                  <li><a href="/image-resizer" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Resize Image</a></li>
+                  <li><a href="/color-picker" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Color Picker</a></li>
+                  <li><a href="/collage-maker" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Collage Maker</a></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className={`font-semibold text-sm mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>More Tools</h4>
+                <ul className="space-y-1.5">
+                  <li><a href="/convert/png" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>PNG Converter</a></li>
+                  <li><a href="/convert/jpg" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>JPG Converter</a></li>
+                  <li><a href="/convert/webp" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>WEBP Converter</a></li>
+                  <li><a href="/convert/heic" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>HEIC Converter</a></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className={`font-semibold text-sm mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Resources</h4>
+                <ul className="space-y-1.5">
+                  <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>FAQ</a></li>
+                  <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Privacy Policy</a></li>
+                  <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Terms & Conditions</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div className={`mt-6 pt-4 border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+              <p className={`text-center text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                © {new Date().getFullYear()} Crop Image — All rights reserved
               </p>
             </div>
-
-            <div>
-              <h4 className={`font-semibold text-sm mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Tools</h4>
-              <ul className="space-y-1.5">
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Image Compressor</a></li>
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Crop Image</a></li>
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Resize Image</a></li>
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Color Picker</a></li>
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Collage Maker</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className={`font-semibold text-sm mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>More Tools</h4>
-              <ul className="space-y-1.5">
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>PNG Converter</a></li>
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>JPG Converter</a></li>
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>WEBP Converter</a></li>
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>HEIC Converter</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className={`font-semibold text-sm mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Resources</h4>
-              <ul className="space-y-1.5">
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>FAQ</a></li>
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Privacy Policy</a></li>
-                <li><a href="#" className={`text-xs ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>Terms & Conditions</a></li>
-              </ul>
-            </div>
           </div>
-
-          <div className={`mt-6 pt-4 border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
-            <p className={`text-center text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
-              © {new Date().getFullYear()} Crop Image — All rights reserved
-            </p>
-          </div>
-        </div>
-      </footer>
-    </div>
+        </footer>
+      </div>
+    </>
   );
 };
 

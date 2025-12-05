@@ -1,7 +1,7 @@
 // src/components/ImageConverterUI.js
 import React, { useState, useRef, useEffect } from 'react';
+import { CommonHeader } from './CommonHeader';
 import { useNavigate } from 'react-router-dom';
-
 export const ImageConverterUI = ({
   // State
   darkMode,
@@ -44,7 +44,7 @@ export const ImageConverterUI = ({
   const headerTools = [
     { name: 'Image Resizer', link: '/image-resizer', short: 'Resize' },
     { name: 'Crop Image', link: '/crop-image', short: 'Crop' },
-    { name: 'Image Compressor', link: '/image-compressor', short: 'Compress' },
+    { name: 'Xe Image Compressor', link: '/image-compressor', short: 'Compress' },
     { name: 'Color Picker', link: '/color-picker', short: 'Color Picker' },
     { name: 'Collage Maker', link: '/collage-maker', short: 'Collage' },
     { name: 'Rotate Image', link: '/rotate-image', short: 'Rotate' }
@@ -71,9 +71,9 @@ export const ImageConverterUI = ({
           box-shadow: 0 0 0 3px ${darkMode ? 'rgba(129, 140, 248, 0.4)' : 'rgba(79, 70, 229, 0.3)'};
         }
       `}</style>
-
+       <CommonHeader darkMode={darkMode} setDarkMode={setDarkMode} />
       {/* ✅ FIXED HEADER — Scroll کرنے پر بھی اوپر رہے گا */}
-      <header className={`${darkMode ? 'bg-indigo-900' : 'bg-indigo-700'} shadow-lg fixed top-0 left-0 right-0 z-50`}>
+      {/* <header className={`${darkMode ? 'bg-indigo-900' : 'bg-indigo-700'} shadow-lg fixed top-0 left-0 right-0 z-50`}>
         <div className="container mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">Image Converter</h1>
@@ -113,7 +113,7 @@ export const ImageConverterUI = ({
             </div>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* ✅ MAIN CONTENT — pt-24 سے جگہ دی گئی Header کے لیے */}
       <main className="container mx-auto px-4 pt-24 pb-12 max-w-4xl">
